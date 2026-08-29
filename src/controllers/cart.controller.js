@@ -27,4 +27,4 @@ const Coupons =
         discountValue: 50,
     },
 }
-module.exports = Coupons;
+export default Coupons;
