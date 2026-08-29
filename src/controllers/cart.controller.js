@@ -1,5 +1,5 @@
 import Cart from "../models/Cart.model"
-const Coupons =
+export const Coupons =
 {
     SAVE10:
     {
@@ -27,4 +27,3 @@ const Coupons =
         discountValue: 50,
     },
 }
-module.exports = Coupons;
