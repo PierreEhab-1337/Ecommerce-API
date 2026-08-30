@@ -1,51 +1,61 @@
 import mongoose from "mongoose";
 // ------------------------------------------- Cart Schema ---------------------------------------------
 const cartSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    unique: true,
-    ref:"User"
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        unique: true,
+        ref: "User"
     },
     
     items:
-        [
+    {
+        type: [
             {
                 product:
                 {
                     type: mongoose.Schema.Types.ObjectId,
-                    ref:"Product"
+                    ref: "Product",
+                    required: true
                 },
             
                 name:
                 {
                     type: String,
                     trim: true,
+                    required: true,
                 },
             
                 image:
                 {
                     type: String,
                     trim: true,
+                    required: true,
                 },
             
                 price:
                 {
                     type: Number,
+                    required: true,
                     min: [0, "Price cannot be negative"],
                 },
             
                 quantity:
                 {
-                   type: Number,
-                   min: [1, "Quantity must be at least 1"],
-                   validate: {
-                   validator: Number.isInteger,
-                   message: "Quantity must be an integer",
-                },
+                    type: Number,
+                    required: true,
+                    min: [1, "Quantity must be at least 1"],
+                    validate:
+                    {
+                        validator: Number.isInteger,
+                        message: "Quantity must be an integer",
+                    },
                 },
             }
+            
         ],
+         default: [],
+    },
   
   coupon: {
     code: 
@@ -109,7 +119,7 @@ cartSchema.virtual("discountAmount").get(function () {
 cartSchema.virtual("total").get(
     function ()
     {
-        return this.subtotal - this.discountAmount;
+        return Math.max(0, this.subtotal - this.discountAmount);
     }
 )
 
