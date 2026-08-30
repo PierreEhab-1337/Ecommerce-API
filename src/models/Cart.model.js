@@ -1,59 +1,59 @@
 import mongoose from "mongoose";
 // ------------------------------------------- Cart Schema ---------------------------------------------
 const cartSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    unique: true,
-    ref:"User"
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        unique: true,
+        ref: "User"
     },
-    
+
     items:
         [
             {
                 product:
                 {
                     type: mongoose.Schema.Types.ObjectId,
-                    ref:"Product"
+                    ref: "Product"
                 },
-            
+
                 name:
                 {
                     type: String,
-                    trim:true
+                    trim: true
                 },
-            
+
                 image:
                 {
-                   type:String
+                    type: String
                 },
-            
+
                 price:
                 {
-                   type:Number
+                    type: Number
                 },
-            
+
                 quantity:
                 {
-                   type:Number
+                    type: Number
                 },
             }
         ],
-  
-  coupon: {
-      code: 
+
+    coupon: {
+        code:
         {
-          type: String,
-          uppercase:true
+            type: String,
+            uppercase: true
         },
-    discountType: 
+        discountType:
         {
-          type: String,
-          enum:["percentage","fixed"]
+            type: String,
+            enum: ["percentage", "fixed"]
         },
-    discountValue: Number,
+        discountValue: Number,
     },
-  
+
 },
     {
         toJSON: { virtuals: true },
@@ -62,10 +62,9 @@ const cartSchema = new mongoose.Schema({
 // ------------------------------------------- SubTotal ----------------------------------------------------
 
 cartSchema.virtual("subtotal").get(
-    function ()
-    {
+    function () {
         return this.items.reduce((total, item) =>
-        
+
             total + item.price * item.quantity, 0
         )
     }
@@ -74,17 +73,14 @@ cartSchema.virtual("subtotal").get(
 // ------------------------------------------- Discount Amount ---------------------------------------------
 
 cartSchema.virtual("discountAmount").get(
-    function ()
-    {
+    function () {
         if (!this.coupon || !this.coupon.discountType)
             return 0;
         else {
-            if (this.coupon.discountType === "percentage")
-            {
+            if (this.coupon.discountType === "percentage") {
                 return this.subtotal * (this.coupon.discountValue / 100);
             }
-            else if (this.coupon.discountType == "fixed")
-            {
+            else if (this.coupon.discountType == "fixed") {
                 return this.coupon.discountValue;
             }
         }
@@ -94,8 +90,7 @@ cartSchema.virtual("discountAmount").get(
 // ------------------------------------------- Total ------------------------------------------------------
 
 cartSchema.virtual("total").get(
-    function ()
-    {
+    function () {
         return this.subtotal - this.discountAmount;
     }
 )
@@ -103,15 +98,14 @@ cartSchema.virtual("total").get(
 // ------------------------------------------- Item Count -------------------------------------------------
 
 cartSchema.virtual("itemCount").get(
-    function ()
-    {
+    function () {
         return this.items.reduce((total, item) =>
             total + item.quantity, 0
-    )
+        )
     }
 )
 
 // ------------------------------------------- Exports ---------------------------------------------------
 
 const Cart = mongoose.model("Cart", cartSchema)
-export default  Cart;
+export default Cart;
