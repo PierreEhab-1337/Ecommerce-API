@@ -20,38 +20,54 @@ const cartSchema = new mongoose.Schema({
                 name:
                 {
                     type: String,
-                    trim:true
+                    trim: true,
                 },
             
                 image:
                 {
-                   type:String
+                    type: String,
+                    trim: true,
                 },
             
                 price:
                 {
-                   type:Number
+                    type: Number,
+                    min: [0, "Price cannot be negative"],
                 },
             
                 quantity:
                 {
-                   type:Number
+                   type: Number,
+                   min: [1, "Quantity must be at least 1"],
+                   validate: {
+                   validator: Number.isInteger,
+                   message: "Quantity must be an integer",
+                },
                 },
             }
         ],
   
   coupon: {
-      code: 
+    code: 
         {
           type: String,
+          trim:true,
           uppercase:true
         },
     discountType: 
         {
           type: String,
-          enum:["percentage","fixed"]
+        enum:
+            {
+                values: ["percentage", "fixed"],
+                message: "Discount type must be percentage or fixed",
+            },
         },
-    discountValue: Number,
+    discountValue:
+        {
+          type: Number,
+          min:[0,"Discount cannot be negative"]
+        }
     },
   
 },
@@ -73,23 +89,20 @@ cartSchema.virtual("subtotal").get(
 
 // ------------------------------------------- Discount Amount ---------------------------------------------
 
-cartSchema.virtual("discountAmount").get(
-    function ()
+cartSchema.virtual("discountAmount").get(function () {
+  if (!this.coupon || !this.coupon.discountType) return 0;
+
+    if (this.coupon.discountType === "percentage")
     {
-        if (!this.coupon || !this.coupon.discountType)
-            return 0;
-        else {
-            if (this.coupon.discountType === "percentage")
-            {
-                return this.subtotal * (this.coupon.discountValue / 100);
-            }
-            else if (this.coupon.discountType == "fixed")
-            {
-                return this.coupon.discountValue;
-            }
-        }
+        return this.subtotal * (this.coupon.discountValue / 100);
     }
-)
+    else if (this.coupon.discountType === "fixed")
+    {
+        return this.coupon.discountValue;
+    }
+
+  return 0; 
+});
 
 // ------------------------------------------- Total ------------------------------------------------------
 
