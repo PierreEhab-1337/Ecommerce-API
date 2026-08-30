@@ -1,90 +1,80 @@
 import mongoose from "mongoose";
 // ------------------------------------------- Cart Schema ---------------------------------------------
-const cartSchema = new mongoose.Schema({
+const cartSchema = new mongoose.Schema(
+  {
     user: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        unique: true,
-        ref: "User"
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      unique: true,
+      ref: "User",
     },
-    
-    items:
-    {
-        type: [
-            {
-                product:
-                {
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: "Product",
-                    required: true
-                },
-            
-                name:
-                {
-                    type: String,
-                    trim: true,
-                    required: true,
-                },
-            
-                image:
-                {
-                    type: String,
-                    trim: true,
-                    required: true,
-                },
-            
-                price:
-                {
-                    type: Number,
-                    required: true,
-                    min: [0, "Price cannot be negative"],
-                },
-            
-                quantity:
-                {
-                    type: Number,
-                    required: true,
-                    min: [1, "Quantity must be at least 1"],
-                    validate:
-                    {
-                        validator: Number.isInteger,
-                        message: "Quantity must be an integer",
-                    },
-                },
-            }
-            
-        ],
-         default: [],
-    },
-  
-  coupon: {
-    code: 
+
+    items: {
+      type: [
         {
-          type: String,
-          trim:true,
-          uppercase:true
-        },
-    discountType: 
-        {
-          type: String,
-        enum:
-            {
-                values: ["percentage", "fixed"],
-                message: "Discount type must be percentage or fixed",
+          product: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Product",
+            required: true,
+          },
+
+          name: {
+            type: String,
+            trim: true,
+            required: true,
+          },
+
+          image: {
+            type: String,
+            trim: true,
+            required: true,
+          },
+
+          price: {
+            type: Number,
+            required: true,
+            min: [0, "Price cannot be negative"],
+          },
+
+          quantity: {
+            type: Number,
+            required: true,
+            min: [1, "Quantity must be at least 1"],
+            validate: {
+              validator: Number.isInteger,
+              message: "Quantity must be an integer",
             },
+          },
         },
-    discountValue:
-        {
-          type: Number,
-          min:[0,"Discount cannot be negative"]
-        }
+      ],
+      default: [],
     },
-  
-},
-    {
-        toJSON: { virtuals: true },
-        toObject: { virtuals: true },
-    });
+
+    coupon: {
+      code: {
+        type: String,
+        trim: true,
+        uppercase: true,
+      },
+      discountType: {
+        type: String,
+        enum: {
+          values: ["percentage", "fixed"],
+          message: "Discount type must be percentage or fixed",
+        },
+      },
+      discountValue: {
+        type: Number,
+        min: [0, "Discount cannot be negative"],
+      },
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
+);
 // ------------------------------------------- SubTotal ----------------------------------------------------
 
 cartSchema.virtual("subtotal").get(
