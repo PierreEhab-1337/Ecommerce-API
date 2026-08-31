@@ -78,10 +78,9 @@ const cartSchema = new mongoose.Schema(
 // ------------------------------------------- SubTotal ----------------------------------------------------
 
 cartSchema.virtual("subtotal").get(
-    function ()
-    {
+    function () {
         return this.items.reduce((total, item) =>
-        
+
             total + item.price * item.quantity, 0
         )
     }
@@ -116,15 +115,14 @@ cartSchema.virtual("total").get(
 // ------------------------------------------- Item Count -------------------------------------------------
 
 cartSchema.virtual("itemCount").get(
-    function ()
-    {
+    function () {
         return this.items.reduce((total, item) =>
             total + item.quantity, 0
-    )
+        )
     }
 )
 
 // ------------------------------------------- Exports ---------------------------------------------------
 
 const Cart = mongoose.model("Cart", cartSchema)
-export default  Cart;
+export default Cart;
