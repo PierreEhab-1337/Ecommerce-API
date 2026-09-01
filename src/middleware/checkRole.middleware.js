@@ -1,4 +1,4 @@
-import { createError } from "../utils/asyncHandler.js"
+import createError from "../utils/createError.js";
 
 export const checkRole = (...roles) => {
     return (req, res, next) => {
