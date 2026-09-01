@@ -1,6 +1,7 @@
 
 import mongoose from 'mongoose';
 import { shippingAddress } from './Order.model.js';
+import bcryptjs from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
@@ -35,5 +36,18 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+userSchema.pre("save", async function() {
+    if(this.isModified('password')){
+        const hashedPassword = await bcryptjs.hash(this.password, 8);
+        this.password = hashedPassword;
+    }
+})
+
+userSchema.methods.comparePassword = async function (enteredPassword) {
+    let user = this;
+    const isSamePassword = await bcryptjs.compare(enteredPassword, user.password);
+    return isSamePassword;
+}
 
 export default mongoose.model('User', userSchema);
