@@ -5,18 +5,15 @@ const otpSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim:true
-
     },
     otp: {
         type: String,
         required: true,
         trim: true
-
     },
     expiresAt: {
         type: Date,
         required: true
-
     },
     userData: {
         type: Object,
@@ -28,10 +25,9 @@ const otpSchema = new mongoose.Schema({
 
 otpSchema.pre("save", async function () {
     if (!this.isModified("otp")) {
-        return
+        return;
     }
-        this.otp = await bcryptjs.hash(this.otp, 10);
-    
+    this.otp = await bcryptjs.hash(this.otp, 10);
 });
 
 
