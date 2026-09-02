@@ -10,10 +10,10 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 app.set("trust proxy", 1);
 
 //Connect to database
-connectDB();
+await connectDB();
 
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`App is listening on port ${PORT}`);

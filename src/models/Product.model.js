@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import slugify from "slugify";
+import imageSchema from "./subdocuments/image.subdocument.js";
+import reviewSchema from "./subdocuments/review.subdocument.js";
 
 const productSchema = new mongoose.Schema({
   name:{
