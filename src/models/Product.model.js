@@ -5,8 +5,7 @@ const productSchema = new mongoose.Schema({
 name:{
     type: String,
     required:true,
-   maxlength:200
-
+    maxlength:200
 },
 price: {
     type: Number,
@@ -15,13 +14,12 @@ price: {
 },
 slug:{
     type: String,
-   
 },
 shortDescription :
 {
-type: String,
-maxlength: 500,
-required: true
+    type: String,
+    maxlength: 500,
+    required: true
 },
 description :
 {
@@ -32,7 +30,6 @@ discountPrice:
 {
     type: Number,
     min: 0, 
-    required: false
 },
 stock:
 {
@@ -42,7 +39,6 @@ stock:
 sku:
 {
     type: String,
-    required: false,
     unique: true
 },
 images: {
@@ -58,44 +54,36 @@ category:
 subcategory:
 {
     type:String,
-    required: false,
 },
 brand:
 {
     type: String,
-    required: false,
 },
 tags:
 {
     type: [String],
-    required: false,
 },
 reviews:
 {
     type: [reviewSchema],
-    required: false
 },
 averageRating:
 {
     type: Number,
-
 },
 numReviews:
 {
     type: Number,
-
 },
 featured:
 {
     type: Boolean,
     default: false,
-    required: false
 },
 isActive:
 {
     type: Boolean,
     default: true,
-    required: false
 },
 createdBy:
 {
