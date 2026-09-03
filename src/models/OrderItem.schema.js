@@ -1,7 +1,7 @@
-const mongoose = require('mongoose')
+import mongoose from 'mongoose'
 const orderItemSchema =new mongoose.Schema({
     product:{
-        Type:mongoose.Schema.Types.ObjectId,
+        type:mongoose.Schema.Types.ObjectId,
         ref: 'Product',
       required: true,
 
@@ -11,7 +11,7 @@ const orderItemSchema =new mongoose.Schema({
       required: true,
     },
     image:{
-      type: Image,
+      type: String,
       required: true,
     },
     price:{
@@ -23,6 +23,10 @@ const orderItemSchema =new mongoose.Schema({
       required: true,
       min: 1,
     },
-})
+    },
+    {
+        _id :false
+    }
+)
 
-module.exports = orderItemSchema;
+export default orderItemSchema;

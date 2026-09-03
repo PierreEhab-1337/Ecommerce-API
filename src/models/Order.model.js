@@ -82,9 +82,9 @@ const orderSchema=new mongoose.Schema({
   }
 );
 
-orderSchema.pre('save', function (next) {
+orderSchema.pre('validate', function (next) {
   this.subtotal = this.items.reduce((sum, item) => 
-    sum + (item.price * item.quantity), 0);
+  sum + (item.price * item.quantity), 0);
 
   this.shippingFee = this.subtotal >= 1000 ? 0 : 50;
 

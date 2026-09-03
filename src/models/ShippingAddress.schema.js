@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const shippingAddressSchema = new mongoose.Schema({
     fullName:{
@@ -25,6 +25,9 @@ const shippingAddressSchema = new mongoose.Schema({
     postalCode: {
       type: String,
     },
-  })
+  },
+{
+    _id:false
+})
 
-module.exports = shippingAddressSchema;
+ export default shippingAddressSchema;
