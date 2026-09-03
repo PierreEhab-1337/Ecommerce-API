@@ -1,4 +1,4 @@
-import Cart from "../models/Cart.model"
+import Cart from "../models/Cart.model.js"
 export const Coupons =
 {
     SAVE10:

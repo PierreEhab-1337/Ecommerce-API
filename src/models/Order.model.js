@@ -1,19 +1,20 @@
-const mongoose=require('mongoose')
-const orderItem = require('./OrderItem.schema')
-const shippingAddress = require('./ShippingAddress.schema')
-const orderSchema=new mongoose.Schema({
-    user:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'User',
-        required:true
+import mongoose from "mongoose";
+import orderItem from "./OrderItem.schema";
+import shippingAddress from "./ShippingAddress.schema";
+
+const orderSchema = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
     },
-    items:{
-        type:[orderItem],
-        required:true
+    items: {
+        type: [orderItem],
+        required: true
     },
-    shippingAddress:{
-        type:shippingAddress,
-        required:true
+    shippingAddress: {
+        type: shippingAddress,
+        required: true
     },
     paymentMethod: {
         type: String,
@@ -31,33 +32,35 @@ const orderSchema=new mongoose.Schema({
     subtotal: {
         type: Number,
         required: true,
+        min: 0
     },
     shippingFee: {
         type: Number,
         required: true,
         default: 0,
+        min: 0
     },
     tax: {
         type: Number,
         required: true,
         default: 0,
+        min: 0
     },
     discount: {
         type: Number,
         default: 0,
+        min: 0
     },
-
     totalPrice: {
         type: Number,
-        required: true
+        required: true,
+        min: 0
     },
-
     status: {
         type: String,
-        enum: ['pending','confirmed','processing','shipped','delivered','cancelled','returned',],
+        enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'],
         default: 'pending',
     },
-
     paidAt: {
         type: Date,
     },
@@ -67,7 +70,6 @@ const orderSchema=new mongoose.Schema({
     cancelledAt: {
         type: Date,
     },
-
     customerNote: {
         type: String,
         maxLength: 1000,
@@ -76,10 +78,10 @@ const orderSchema=new mongoose.Schema({
         type: String,
         maxLength: 1000,
     },
-  },
-  {
+},
+{
     timestamps: true, 
-  }
+}
 );
 
 orderSchema.pre('validate', function (next) {
@@ -95,6 +97,4 @@ orderSchema.pre('validate', function (next) {
   next();
 });
 const Order = mongoose.model('Order', orderSchema);
-
-module.exports = Order;
-
+export default Order;
