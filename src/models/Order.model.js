@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import orderItem from "./OrderItem.schema";
-import shippingAddress from "./ShippingAddress.schema";
+import orderItem from "./subdocuments/OrderItem.subdocument.js";
+import shippingAddress from "./subdocuments/ShippingAddress.subdocument.js";
 
 const orderSchema = new mongoose.Schema({
     user: {
