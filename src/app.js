@@ -2,6 +2,9 @@ import express from "express";
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
 import createError from "./utils/createError.js";
 import cors from "cors";
+import authRouter from "./routes/auth.routes.js";
+import userRouter from "./routes/user.routes.js";
+import productRouter from "./routes/product.routes.js";
 
 
 const app = express();
@@ -10,6 +13,10 @@ app.use(cors());
 
 //Parses incoming JSON data sent from the frontend
 app.use(express.json());
+
+app.use('/auth', authRouter);
+app.use('/users', userRouter);
+app.use('/products', productRouter);
 
 app.get('/', (req, res) => {res.send("Ecommerce API Endpoint")});
 
