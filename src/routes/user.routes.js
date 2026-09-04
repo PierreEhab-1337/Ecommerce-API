@@ -6,8 +6,8 @@ import  {addUserValidation, getUserValidation}  from "../validators/user.validat
 
 const router = express.Router();
 
-router.post('/add',auth, allowedTo('admin'), addUserValidation, asyncHandler(userController.AddUser));
-router.get('/all', auth, allowedTo('admin'), asyncHandler(userController.GetAllUser));
+router.post('/add',auth ,allowedTo('admin'), addUserValidation, asyncHandler(userController.AddUser));
+router.get('/all',auth ,allowedTo('admin') , asyncHandler(userController.GetAllUser));
 router.get('/:id', getUserValidation, asyncHandler(userController.GetUserById));
 
 export default router;
