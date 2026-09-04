@@ -1,6 +1,6 @@
 
 import mongoose from 'mongoose';
-import { shippingAddress } from './Order.model.js';
+import shippingAddress from './subdocuments/ShippingAddress.subdocument';
 import bcryptjs from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
