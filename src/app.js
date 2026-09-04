@@ -1,6 +1,7 @@
 import express from "express";
 import connectDB from "./db/dbConnection.js";
 import cors from "cors"
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
@@ -8,7 +9,7 @@ app.use(cors());
 
 //Parses incoming JSON data sent from the frontend
 app.use(express.json());
-
+app.use(cookieParser());
 //Connect to database
 connectDB();
 
