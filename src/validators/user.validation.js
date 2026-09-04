@@ -1,6 +1,6 @@
 import Joi from 'joi';
 const createUserSchema = Joi.object({
-    name: Joi.string().min(3).max(30).required(),
+    username: Joi.string().min(3).max(30).required(),
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required(),
     phone: Joi.string().pattern(/^01[0125][0-9]{8}$/).required().messages({
@@ -14,7 +14,7 @@ const idParamSchema = Joi.object({
 });
 
 
-const addUserValidation = (req, res, next) => {
+export const addUserValidation = (req, res, next) => {
     const { error } = createUserSchema.validate(req.body, { abortEarly: false });
     if (error) {
         const errorMessages = error.details.map(err => err.message);
@@ -24,15 +24,10 @@ const addUserValidation = (req, res, next) => {
 };
 
 
-const getUserValidation = (req, res, next) => {
+export const getUserValidation = (req, res, next) => {
     const { error } = idParamSchema.validate(req.params);
     if (error) {
         return res.status(400).json({ status: 'fail', error: error.details[0].message });
     }
     next();
-};
-
-export default {
-    addUserValidation,
-    getUserValidation
 };

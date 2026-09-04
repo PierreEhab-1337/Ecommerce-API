@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 const AddUser = async (req, res) => {
     try {
-        const { name, email, password, phone, role } = req.body;
+        const { username, email, password, phone, role } = req.body;
         
         const checkUser = await User.findOne({ email });
         if (checkUser) {
@@ -11,7 +11,7 @@ const AddUser = async (req, res) => {
         }
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const user = new User({ name, email, password: hashedPassword, phone, role });
+        const user = new User({ username, email, password: hashedPassword, phone, role });
         await user.save();
 
         return res.status(201).send("User saved successfully");
