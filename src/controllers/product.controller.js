@@ -1,0 +1,67 @@
+import Product from "../models/Product.model.js";
+import createError from "../utils/createError.js";
+
+// ----------------------------------------------- getProductById -----------------------------------------------
+
+export const getProductById = async (req, res, next) => {
+  const { id } = req.params;
+  const product = await Product.findById(id);
+
+  if (!product) {
+    return next(createError("Product not found", 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Product fetched successfully",
+    data: product,
+  });
+};
+
+// ----------------------------------------------- getActiveProduct ---------------------------------------------
+
+export const getActiveProduct = async (req, res, next) => {
+  const {
+    category,
+    brand,
+    minPrice,
+    maxPrice,
+    page = 1,
+    limit = 10,
+    sort,
+  } = req.query;
+
+  const pageNumber = Math.max(Number(page) || 1, 1);
+  const limitNumber = Math.max(Number(limit) || 10, 1);
+  const skip = (pageNumber - 1) * limitNumber;
+
+  const filter = { isActive: true };
+
+  if (category) filter.category = category.toLowerCase();
+  if (brand) filter.brand = brand;
+
+  if (minPrice || maxPrice) {
+    filter.price = {};
+    if (minPrice) filter.price.$gte = Number(minPrice);
+    if (maxPrice) filter.price.$lte = Number(maxPrice);
+  }
+
+  const [activeProducts, total] = await Promise.all([
+    Product.find(filter).skip(skip).limit(limitNumber).sort(sort),
+    Product.countDocuments(filter),
+  ]);
+
+  res.status(200).json({
+    success: true,
+    message: "Products fetched successfully",
+    data: {
+      products: activeProducts,
+      pagination: {
+        page: pageNumber,
+        limit: limitNumber,
+        total,
+        pages: Math.ceil(total / limitNumber),
+      },
+    },
+  });
+};
