@@ -18,6 +18,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "joi": "^18.2.8",
     "mongoose": "^9.9.4",
     "nodemailer": "^9.1.1",
     "slugify": "^1.6.9"
