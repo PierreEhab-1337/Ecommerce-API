@@ -1,7 +1,6 @@
 import createError from "../utils/createError.js";
 
-export const validate =
-  (schema, source = "body") =>
+const validate = (schema, source = "body") =>
   (req, res, next) => {
     const { error, value } = schema.validate(req[source]);
 
