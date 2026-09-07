@@ -1,10 +1,8 @@
 import express from "express";
-
-import cors from "cors"
-import cookieParser from 'cookie-parser';
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
 import createError from "./utils/createError.js";
 import cors from "cors";
+import cookieParser from 'cookie-parser';
 import authRouter from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
 import productRouter from "./routes/product.routes.js";
@@ -16,6 +14,7 @@ app.use(cors());
 
 //Parses incoming JSON data sent from the frontend
 app.use(express.json());
+
 app.use(cookieParser());
 
 
