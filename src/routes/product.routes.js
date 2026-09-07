@@ -12,7 +12,7 @@ router.post(
   "/",
   authMiddleware,
   checkRole("admin"),
-  upload.single("image"),
+  upload.array("image"),
   validateCreateProduct,
   asyncHandler(createProduct)
 );

@@ -1,6 +1,8 @@
 import express from "express";
-import asyncHandler from "../utils/asyncHandler.js"
+import { createUser } from "../controllers/user.controller.js";
 
 const router = express.Router();
+
+router.post("/", createUser);
 
 export default router;
