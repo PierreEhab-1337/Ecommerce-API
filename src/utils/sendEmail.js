@@ -5,14 +5,14 @@ const transporter = nodemailer.createTransport({
     port: 465,
     secure: true,
     auth: {
-        user: '',
-        pass: ''
+        user: process.env.USER_EMAIL,
+        pass: process.env.APP_PASSCODE
     }
 });
 
 const sendEmail = async ({ to, subject, text, OTPNumber }) => {
     const info = await transporter.sendMail({
-        from: `"Koda Store" <${'KODA_STORE@gmail.com'}>`,
+        from: `"Koda Store" <${'sef.ecommerce.team@gmail.com'}>`,
         to,
         subject,
         text,

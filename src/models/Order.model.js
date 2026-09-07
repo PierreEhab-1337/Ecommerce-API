@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import orderItem from "./subdocuments/OrderItem.subdocument.js";
+import shippingAddress from "./subdocuments/ShippingAddress.subdocument.js";
 
 const orderSchema = new mongoose.Schema({
     user: {
@@ -82,5 +84,17 @@ const orderSchema = new mongoose.Schema({
 }
 );
 
+orderSchema.pre('validate', function (next) {
+  this.subtotal = this.items.reduce((sum, item) => 
+  sum + (item.price * item.quantity), 0);
+
+  this.shippingFee = this.subtotal >= 1000 ? 0 : 50;
+
+  this.tax = this.subtotal* 0.14;
+
+  this.totalPrice = this.subtotal + this.shippingFee + this.tax ;
+
+  next();
+});
 const Order = mongoose.model('Order', orderSchema);
 export default Order;
