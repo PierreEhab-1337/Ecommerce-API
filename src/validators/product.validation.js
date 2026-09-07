@@ -2,7 +2,7 @@ import Joi from "joi";
   // ----------------------------------------------- getProductByIdSchema ---------------------------------------------
 
 export const getProductByIdSchema = Joi.object({
-  id: Joi.string().required(),
+  id: Joi.string().hex().length(24).required(),
 });
 
   // ----------------------------------------------- getProductsQuerySchema -------------------------------------------
