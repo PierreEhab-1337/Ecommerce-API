@@ -2,7 +2,7 @@ import User from "../models/User.model.js";
 import createError from "../utils/createError.js";
 
 
-const updateUser = async (req, res) => {
+export const updateUser = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
@@ -25,7 +25,7 @@ const updateUser = async (req, res) => {
     });
 
 };
-const deleteUser = async (req, res) => {
+export const deleteUser = async (req, res) => {
     const { id } = req.params;
 
     const user = await User.findById(id);
@@ -42,4 +42,3 @@ const deleteUser = async (req, res) => {
     });
 };
 
-export default { updateUser, deleteUser };
