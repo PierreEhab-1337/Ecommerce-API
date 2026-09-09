@@ -65,3 +65,63 @@ export const getActiveProduct = async (req, res, next) => {
     },
   });
 };
+
+// ----------------------------------------------- addReview -----------------------------------------------
+
+export const addReview = async (req, res) => {
+  const { id } = req.params;
+  const { rating, comment } = req.body;
+
+  const product = await Product.findById(id);
+
+  if (!product) {
+    throw createError("Product not found", 404);
+  }
+
+  const userId = req.user.id;
+
+  const alreadyReviewed = product.reviews.some(
+    (review) => review.user.toString() === userId.toString()
+  );
+
+  if (alreadyReviewed) {
+    throw createError("User has already reviewed this product", 409);
+  }
+
+  product.reviews.push({
+    user: userId,
+    rating,
+    comment,
+  });
+
+  product.calcAverageRating();
+
+  await product.save();
+
+  res.status(201).json({
+    success: true,
+    message: "Review added successfully",
+    data: product,
+  });
+};
+
+// ----------------------------------------------- getProductReviews -----------------------------------------------
+
+export const getProductReviews = async (req, res) => {
+  const { id } = req.params;
+
+  const product = await Product.findById(id).populate(
+    "reviews.user",
+    "username"
+  );
+
+  if (!product) {
+    throw createError("Product not found", 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Reviews fetched successfully",
+    data: product.reviews,
+  });
+};
