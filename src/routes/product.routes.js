@@ -1,5 +1,6 @@
 import express from "express";
 import asyncHandler from "../utils/asyncHandler.js";
+import authMiddleware from "../middleware/auth.middleware.js";
 import {
   getActiveProduct,
   getProductById,
@@ -30,6 +31,7 @@ router.get(
 
 router.post(
   "/:id/reviews",
+  authMiddleware,
   validate(getProductByIdSchema, "params"),
   validate(addReviewSchema, "body"),
   asyncHandler(addReview),
