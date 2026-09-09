@@ -4,8 +4,10 @@ import authMiddleware from "../middleware/auth.middleware.js";
 import {
   getActiveProduct,
   getProductById,
+  searchProducts,
   addReview,
   getProductReviews,
+  deleteReview,
 } from "../controllers/product.controller.js";
 import {
   getProductByIdSchema,
@@ -28,6 +30,16 @@ router.get(
   asyncHandler(getActiveProduct),
 );
 
+router.get(
+  "/search", 
+  asyncHandler(searchProducts)
+);
+
+router.delete(
+  "/:id/reviews/:rid", 
+  authMiddleware, 
+  asyncHandler(deleteReview)
+);
 
 router.post(
   "/:id/reviews",
