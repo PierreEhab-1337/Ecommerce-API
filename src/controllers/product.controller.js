@@ -1,129 +1,185 @@
 import Product from "../models/Product.model.js";
 import createError from "../utils/createError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-const searchProducts = async (req, res, next) => {
-  try {
-    const {
-      text,
-      category,
-      subcategory,
-      brand,
-      tags,
-      minPrice,
-      maxPrice,
-      sort,
-      page = 1,
-      limit = 10,
-    } = req.query;
-    let query = { isActive: true };
-    if (text) {
-      query.$text = { $search: text };
-    }
-    if (category) {
-      query.category = category.toLowerCase();
-    }
-    if (subcategory) {
-      query.subcategory = subcategory;
-    }
-    if (brand) {
-      query.brand = brand;
-    }
-    if (tags) {
-      const tagsArray = tags.split(",");
-      query.tags = { $in: tagsArray };
-    }
-    // if (minPrice) {
-    //   query.price = {}
-    //   query.price.$gte=Number(minPrice)
-    // }
-    // if (maxPrice) {
-    //   query.price = {}
-    //   query.price.$lte=Number(maxPrice)
-    // }
-    if (minPrice || maxPrice) {
-      query.price = {};
-      if (minPrice) query.price.$gte = Number(minPrice);
-      if (maxPrice) query.price.$lte = Number(maxPrice);
-    }
+export const searchProducts = asyncHandler(async (req, res, next) => {
+  const {
+    text,
+    category,
+    subcategory,
+    brand,
+    tags,
+    minPrice,
+    maxPrice,
+    sort,
+    page = 1,
+    limit = 10,
+  } = req.query;
 
-    let sorting = "-createdAt"; //تنازلي
-    if (sort) {
-      sorting = sort.split(",").join(" "); //mongoose هشيل ال ',' واحط مسافه
-    }
-
-    // Pagination part
-    const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.max(1, parseInt(limit)); 
-    const skip = (pageNum - 1) * limitNum;    //1:1-10  2:11-20   p1==>p2 ((2-1)*10)=10 skip 10product
-
-    const products = await Product.find(query)
-      .sort(sorting)
-      .skip(skip)
-      .limit(limitNum);
-
-    const totalProducts = await Product.countDocuments(query);
-
-    res.status(200).json({
-      success: true,
-      message: "Products Searching is done successfully",
-      result: products.length,
-      pagination: {
-        total: totalProducts,
-        page: pageNum,
-        allPages: Math.ceil(totalProducts / limitNum),
-      },
-      data: { products },
-    });
-  } catch (error) {
-    next(error);
+  let query = { isActive: true };
+  if (text) {
+    query.$text = { $search: text };
   }
-};
+  if (category) {
+    query.category = category.toLowerCase();
+  }
+  if (subcategory) {
+    query.subcategory = subcategory;
+  }
+  if (brand) {
+    query.brand = brand;
+  }
+  if (tags) {
+    const tagsArray = tags.split(",");
+    query.tags = { $in: tagsArray };
+  }
+  // if (minPrice) {
+  //   query.price = {}
+  //   query.price.$gte=Number(minPrice)
+  // }
+  // if (maxPrice) {
+  //   query.price = {}
+  //   query.price.$lte=Number(maxPrice)
+  // }
+  if (minPrice || maxPrice) {
+    query.price = {};
+    if (minPrice) query.price.$gte = Number(minPrice);
+    if (maxPrice) query.price.$lte = Number(maxPrice);
+  }
+
+  let sorting = "-createdAt"; //تنازلي
+  if (sort) {
+    sorting = sort.split(",").join(" "); //mongoose هشيل ال ',' واحط مسافه
+  }
+
+  // Pagination part
+  const pageNum = Math.max(1, parseInt(page));
+  const limitNum = Math.max(1, parseInt(limit));
+  const skip = (pageNum - 1) * limitNum; //1:1-10  2:11-20   p1==>p2 ((2-1)*10)=10 skip 10product
+
+  const products = await Product.find(query)
+    .sort(sorting)
+    .skip(skip)
+    .limit(limitNum);
+
+  const totalProducts = await Product.countDocuments(query);
+
+  res.status(200).json({
+    success: true,
+    message: "Products Searching is done successfully",
+    result: products.length,
+    pagination: {
+      total: totalProducts,
+      page: pageNum,
+      allPages: Math.ceil(totalProducts / limitNum),
+    },
+    data: { products },
+  });
+});
 
 // /////////////////////////////////////////////////////
 
-const deleteReview = async (req, res, next) => {
-  try {
-    const { id, rid } = req.params;
-    const product = await Product.findById(id);
-    if (!product) {
-      throw createError("The Product is not found!!", 404);
-    }
+export const deleteReview = asyncHandler(async (req, res, next) => {
+  const { id, rid } = req.params;
 
-    const review = product.reviews.id(rid);
-    if (!review) {
-      throw createError("The review is not found!!", 404);
-    }
-    ////
-    const reviewerId = review.user
-      ? review.user.toString()
-      : review.userId?.toString();
-    const isOwner = reviewerId === req.user._id.toString();
-    const isAdmin = req.user.role === "admin";
-
-    if (!isOwner && !isAdmin) {
-      throw createError("You are not authorized to delete this rewiew", 403);
-    }
-
-    //numReviewsوaverageRating الحزف واعادة حساب ال
-
-    product.reviews.pull(rid);
-    product.calcAverageRating();
-    await product.save();
-
-    res.status(200).json({
-      success:true,
-      message: "The Review is deleted successfully",
-      data: {
-        averageRating: product.averageRating,
-        numReviews: product.numReviews,
-      },
-    });
-  } catch (error) {
-    next(error);
+  const product = await Product.findById(id);
+  if (!product) {
+    throw createError("The Product is not found!!", 404);
   }
+
+  const review = product.reviews.id(rid);
+  if (!review) {
+    throw createError("The review is not found!!", 404);
+  }
+  ////
+  const reviewerId = review.user
+    ? review.user.toString()
+    : review.userId?.toString();
+  const isOwner = reviewerId === req.user.id.toString();
+  const isAdmin = req.user.role === "admin";
+
+  if (!isOwner && !isAdmin) {
+    throw createError("You are not authorized to delete this rewiew", 403);
+  }
+
+  //numReviewsوaverageRating الحزف واعادة حساب ال
+
+  product.reviews.pull(rid);
+  if (typeof product.calcAverageRating === "function") {
+    product.calcAverageRating();
+  }
+  await product.save();
+
+  res.status(200).json({
+    success: true,
+    message: "The Review is deleted successfully",
+    data: {
+      averageRating: product.averageRating,
+      numReviews: product.numReviews,
+    },
+  });
+});
+// ----------------------------------------------- getProductById -----------------------------------------------
+
+export const getProductById = async (req, res, next) => {
+  const { id } = req.params;
+  const product = await Product.findById(id);
+
+  if (!product) {
+    return next(createError("Product not found", 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Product fetched successfully",
+    data: product,
+  });
 };
 
-export default {
-  searchProducts,
-  deleteReview,
+// ----------------------------------------------- getActiveProduct ---------------------------------------------
+
+export const getActiveProduct = async (req, res, next) => {
+  const {
+    category,
+    brand,
+    minPrice,
+    maxPrice,
+    page = 1,
+    limit = 10,
+    sort,
+  } = req.query;
+
+  const pageNumber = Math.max(Number(page) || 1, 1);
+  const limitNumber = Math.max(Number(limit) || 10, 1);
+  const skip = (pageNumber - 1) * limitNumber;
+
+  const filter = { isActive: true };
+
+  if (category) filter.category = category.toLowerCase();
+  if (brand) filter.brand = brand;
+
+  if (minPrice || maxPrice) {
+    filter.price = {};
+    if (minPrice) filter.price.$gte = Number(minPrice);
+    if (maxPrice) filter.price.$lte = Number(maxPrice);
+  }
+
+  const [activeProducts, total] = await Promise.all([
+    Product.find(filter).skip(skip).limit(limitNumber).sort(sort),
+    Product.countDocuments(filter),
+  ]);
+
+  res.status(200).json({
+    success: true,
+    message: "Products fetched successfully",
+    data: {
+      products: activeProducts,
+      pagination: {
+        page: pageNumber,
+        limit: limitNumber,
+        total,
+        pages: Math.ceil(total / limitNumber),
+      },
+    },
+  });
 };
