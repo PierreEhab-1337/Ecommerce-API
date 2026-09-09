@@ -1,15 +1,57 @@
 import express from "express";
 import asyncHandler from "../utils/asyncHandler.js";
-import authMiddleware from "../middleware/auth.middleware.js"; 
-import { checkRole } from "../middleware/checkRole.middleware.js"; 
-import userController from "../controllers/user.controller.js";
-import { createUserSchema, idParamSchema } from "../validators/user.validation.js";
+import authMiddleware from "../middleware/auth.middleware.js";
+import { checkRole } from "../middleware/checkRole.middleware.js";
 import validate from "../middleware/validateHandler.middleware.js";
+import { 
+  updateUserValidation, 
+  idParamSchema, 
+  createUserSchema 
+} from "../validators/user.validation.js";
+import { 
+  AddUser,
+  GetAllUser,
+  GetUserById,
+  updateUser, 
+  deleteUser 
+} from "../controllers/user.controller.js";
+
 
 const router = express.Router();
 
-router.post('/add', authMiddleware, checkRole('admin'), validate(createUserSchema, 'body'), asyncHandler(userController.AddUser));
-router.get('/all', authMiddleware, checkRole('admin'), asyncHandler(userController.GetAllUser));
-router.get('/:id', authMiddleware, checkRole('admin'), validate(idParamSchema, 'params'), asyncHandler(userController.GetUserById));
+router.patch(
+    '/:id',
+    authMiddleware,
+    validate(idParamSchema, 'params'),
+    validate(updateUserValidation, 'body'),
+    asyncHandler(updateUser)
+);
+router.delete(
+    '/:id',
+    authMiddleware,
+    checkRole('admin'),
+    validate(idParamSchema, 'params'),
+    asyncHandler(deleteUser)
+);
+router.post(
+  '/add', 
+  authMiddleware, 
+  checkRole('admin'), 
+  validate(createUserSchema, 'body'), 
+  asyncHandler(AddUser)
+);
+router.get(
+  '/all', 
+  authMiddleware, 
+  checkRole('admin'), 
+  asyncHandler(GetAllUser)
+);
+router.get(
+  '/:id', 
+  authMiddleware, 
+  checkRole('admin'), 
+  validate(idParamSchema, 'params'), 
+  asyncHandler(GetUserById)
+);
 
 export default router;

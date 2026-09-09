@@ -1,7 +1,7 @@
-import User from '../models/User.model.js';
-import createError from '../utils/createError.js';
+import User from "../models/User.model.js";
+import createError from "../utils/createError.js";
 
-const AddUser = async (req, res) => {
+export const AddUser = async (req, res) => {
     const { username, email, password, phone, role } = req.body;
     
     const checkUser = await User.findOne({ email });
@@ -26,7 +26,7 @@ const AddUser = async (req, res) => {
     });
 };
 
-const GetAllUser = async (req, res) => {
+export const GetAllUser = async (req, res) => {
     // مش محتاجين .select('-password') لأنها ملوية تلقائياً select: false في الموديل
     const users = await User.find({});
     res.status(200).json({
@@ -36,7 +36,7 @@ const GetAllUser = async (req, res) => {
     });
 };
 
-const GetUserById = async (req, res) => {
+export const GetUserById = async (req, res) => {
     const _id = req.params.id;
     
     const user = await User.findById(_id);
@@ -52,8 +52,43 @@ const GetUserById = async (req, res) => {
     });
 };
 
-export default {
-    AddUser,
-    GetAllUser,
-    GetUserById
+
+export const updateUser = async (req, res) => {
+    const { id } = req.params;
+    const updates = req.body;
+
+
+    const user = await User.findById(id);
+    if (!user) {
+        throw createError("User Not Found", 404);
+    }
+    if (req.user.id.toString() !== id) {
+        throw createError("You are not authorized to update this user", 403);
+    }
+    Object.assign(user, updates);
+
+    await user.save();
+
+    res.status(200).json({
+        success: true,
+        message: "User updated successfully",
+        data: user
+    });
+
+};
+export const deleteUser = async (req, res) => {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+        throw createError("User Not Found", 404);
+    }
+
+    await User.findByIdAndDelete(id);
+
+    res.status(200).json({
+        success: true,
+        message: "User deleted successfully"
+    });
 };
