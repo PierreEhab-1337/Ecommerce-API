@@ -1,14 +1,13 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.model.js';
 import createError from '../utils/createError.js';
-import asyncHandler from '../utils/asyncHandler.js';
 import crypto from "crypto";
 import OTP from "../models/OTP.model.js";
 import sendEmail from '../utils/sendEmail.js';
 import bcryptjs from "bcryptjs";
 
 
-export const login = asyncHandler(async (req, res) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email }).select('+password');
@@ -41,10 +40,10 @@ export const login = asyncHandler(async (req, res) => {
     message: 'Logged in successfully',
     data: { user: userData },
   });
-});
+};
 
 //task3
-export const forgetPasswordSendOTP=asyncHandler(async(req, res)=>{
+export const forgetPasswordSendOTP=async(req, res)=>{
 const { email}= req.body;
 const user= await User.findOne({email});
 
@@ -71,13 +70,14 @@ await sendEmail({
   OTPNumber: otp,
 });
 res.status(200).json({
+  success: true,
   message: "OTP sent correctly",
 });
-});
+};
 
 
 
-export const forgetPasswordVerifyOTP= asyncHandler( async(req, res)=>{
+export const forgetPasswordVerifyOTP= async(req, res)=>{
   const {email, otp, newPassword}= req.body;
   
   const OTPRecord= await OTP.findOne({email}).sort({createdAt: -1});
@@ -101,10 +101,10 @@ export const forgetPasswordVerifyOTP= asyncHandler( async(req, res)=>{
  await user.save();
 
  await OTP.findByIdAndDelete(OTPRecord._id);
- res.status(200).json(
-  {
+ res.status(200).json({
+    success: true,
     message: "Password reset successfully",
-    status: 'success'
+ 
   })
-});
+};
 ////
