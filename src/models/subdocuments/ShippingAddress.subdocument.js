@@ -30,4 +30,4 @@ const shippingAddressSchema = new mongoose.Schema({
     _id:false
 })
 
- export default shippingAddressSchema;
+export default shippingAddressSchema;
