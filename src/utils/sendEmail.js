@@ -2,24 +2,24 @@ import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
     auth: {
         user: process.env.USER_EMAIL,
         pass: process.env.APP_PASSCODE
     }
 });
 
-const sendEmail = async ({ to, subject, text, OTPNumber }) => {
+const sendEmail = async ({ to, subject, text, otp }) => {
     const info = await transporter.sendMail({
-        from: `"Koda Store" <${'sef.ecommerce.team@gmail.com'}>`,
+        from: `"Koda Store" <${process.env.USER_EMAIL}>`,
         to,
         subject,
         text,
-        html: otpEmailTemplate(OTPNumber), 
+        html: otpEmailTemplate(otp), 
     });
 
-    console.log("Email sent:", info.messageId);
+    // console.log("Email sent:", info.messageId);
 };
 
 export const otpEmailTemplate = (otp) => `
@@ -41,7 +41,7 @@ export const otpEmailTemplate = (otp) => `
                 <div style="font-size:32px; font-weight:bold; letter-spacing:6px; color:#4f46e5; margin:16px 0;">
                     ${otp}
                 </div>
-                <p style="font-size:14px; color:#888888; margin:16px 0 0;">This code expires in 5 minutes.</p>
+                <p style="font-size:14px; color:#888888; margin:16px 0 0;">This code expires in 1 minute.</p>
                 </td>
             </tr>
             <tr>

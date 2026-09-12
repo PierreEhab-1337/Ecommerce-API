@@ -26,6 +26,18 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
     phone: { type: String },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    otp: {
+      type: String,
+    },
+    otpExpires: {
+      type: Date,
+    },
+
     avatar: { type: String, default: 'https://example.com/default-avatar.png' },
     role: { type: String, enum: ['admin', 'customer'], default: 'customer' },
     addresses: [shippingAddress],
@@ -37,17 +49,17 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-userSchema.pre("save", async function() {
-    if(this.isModified('password')){
-        const hashedPassword = await bcryptjs.hash(this.password, 8);
-        this.password = hashedPassword;
-    }
+userSchema.pre("save", async function () {
+  if (this.isModified('password')) {
+    const hashedPassword = await bcryptjs.hash(this.password, 8);
+    this.password = hashedPassword;
+  }
 })
 
 userSchema.methods.comparePassword = async function (enteredPassword) {
-    let user = this;
-    const isSamePassword = await bcryptjs.compare(enteredPassword, user.password);
-    return isSamePassword;
+  let user = this;
+  const isSamePassword = await bcryptjs.compare(enteredPassword, user.password);
+  return isSamePassword;
 }
 
 export default mongoose.model('User', userSchema);
