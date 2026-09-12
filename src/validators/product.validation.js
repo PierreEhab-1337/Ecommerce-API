@@ -1,6 +1,6 @@
 import Joi from "joi";
 
-const createProductSchema = Joi.object({
+export const createProductSchema = Joi.object({
   name: Joi.string()
     .trim()
     .max(200)
@@ -56,20 +56,36 @@ const createProductSchema = Joi.object({
     .optional(),
 });
 
-const createProductValidation = (req, res, next) => {
-  const { error } = createProductSchema.validate(req.body, {
-    abortEarly: false,
-  });
+  // ----------------------------------------------- getProductByIdSchema ---------------------------------------------
 
-  if (error) {
-    return res.status(400).json({
-      success: false,
-      message: "Validation error",
-      errors: error.details.map((detail) => detail.message),
-    });
-  }
+export const getProductByIdSchema = Joi.object({
+  id: Joi.string().hex().length(24).required(),
+});
 
-  next();
-};
+  // ----------------------------------------------- getProductsQuerySchema -------------------------------------------
 
-export default createProductValidation;
+export const getProductsQuerySchema = Joi.object({
+    category:
+        Joi.string().lowercase(),
+    brand:
+        Joi.string(),
+    minPrice:
+        Joi.number().min(0),
+    maxPrice:
+        Joi.number().min(0),
+    page:
+        Joi.number().integer().min(1),
+    limit:
+        Joi.number().integer().min(1).max(100),
+    sort:
+        Joi.string(),
+});
+
+// ----------------------------------------------- addReviewSchema -----------------------------------------------
+
+export const addReviewSchema = Joi.object({
+  rating: Joi.number().integer().min(1).max(5).required(),
+  comment: Joi.string().trim().max(1000).allow(""),
+});
+
+
