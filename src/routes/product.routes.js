@@ -23,12 +23,6 @@ import { checkRole } from "../middleware/checkRole.middleware.js";
 const router = express.Router();
 
 router.get(
-  "/:id",
-  validate(getProductByIdSchema, "params"),
-  asyncHandler(getProductById),
-);
-
-router.get(
   "/",
   validate(getProductsQuerySchema, "query"),
   asyncHandler(getActiveProduct),
@@ -37,6 +31,12 @@ router.get(
 router.get(
   "/search", 
   asyncHandler(searchProducts)
+);
+
+router.get(
+  "/:id",
+  validate(getProductByIdSchema, "params"),
+  asyncHandler(getProductById),
 );
 
 router.post(
