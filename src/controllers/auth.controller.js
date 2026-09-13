@@ -4,6 +4,7 @@ import createError from '../utils/createError.js';
 import crypto from "crypto";
 import OTP from "../models/OTP.model.js";
 import sendEmail from '../utils/sendEmail.js';
+import { otpEmailTemplate } from '../utils/sendEmail.js';
 import bcryptjs from "bcryptjs";
 
 
@@ -67,7 +68,7 @@ await sendEmail({
   to: email,
   subject: "Password reset OTP",
   text: `Your OTP for password reset is ${otp}. It will expire in 5 minutes.`,
-  OTPNumber: otp,
+  html: otpEmailTemplate(otp, 5),
 });
 res.status(200).json({
   success: true,

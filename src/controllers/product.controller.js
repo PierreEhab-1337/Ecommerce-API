@@ -146,7 +146,7 @@ export const searchProducts = async (req, res, next) => {
 
 // ----------------------------------------------- createProduct -----------------------------------------------
 
-export const createProduct = async (req, res) => {
+export const createProduct = async (req, res, next) => {
     const {
       name,
       price,
@@ -191,7 +191,7 @@ export const createProduct = async (req, res) => {
         url: image.secure_url || image.url,
       })),
 
-      createdBy: req.user.userId,
+      createdBy: req.user.id,
     });
 
     res.status(201).json({

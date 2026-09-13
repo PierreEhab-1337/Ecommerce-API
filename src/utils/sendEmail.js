@@ -10,19 +10,19 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-const sendEmail = async ({ to, subject, text, OTPNumber }) => {
+const sendEmail = async ({ to, subject, text, html }) => {
     const info = await transporter.sendMail({
         from: `"Koda Store" <${'sef.ecommerce.team@gmail.com'}>`,
         to,
         subject,
         text,
-        html: otpEmailTemplate(OTPNumber), 
+        html, 
     });
 
     console.log("Email sent:", info.messageId);
 };
 
-export const otpEmailTemplate = (otp) => `
+export const otpEmailTemplate = (otp, expirationTimeInMinutes) => `
     <!DOCTYPE html>
     <html>
     <body style="margin:0; padding:0; background-color:#f4f4f7; font-family: Arial, sans-serif;">
@@ -41,7 +41,7 @@ export const otpEmailTemplate = (otp) => `
                 <div style="font-size:32px; font-weight:bold; letter-spacing:6px; color:#4f46e5; margin:16px 0;">
                     ${otp}
                 </div>
-                <p style="font-size:14px; color:#888888; margin:16px 0 0;">This code expires in 5 minutes.</p>
+                <p style="font-size:14px; color:#888888; margin:16px 0 0;">This code expires in ${expirationTimeInMinutes} minutes.</p>
                 </td>
             </tr>
             <tr>
