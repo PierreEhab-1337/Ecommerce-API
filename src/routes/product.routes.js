@@ -5,6 +5,7 @@ import {
   getActiveProduct,
   getProductById,
   searchProducts,
+  createProduct,
   addReview,
   getProductReviews,
   deleteReview,
@@ -13,16 +14,13 @@ import {
   getProductByIdSchema,
   getProductsQuerySchema,
   addReviewSchema,
+  createProductSchema
 } from "../validators/product.validation.js";
 import validate from "../middleware/validateHandler.middleware.js";
+import upload from "../middleware/uploadHandler.js";
+import { checkRole } from "../middleware/checkRole.middleware.js";
 
 const router = express.Router();
-
-router.get(
-  "/:id",
-  validate(getProductByIdSchema, "params"),
-  asyncHandler(getProductById),
-);
 
 router.get(
   "/",
@@ -33,6 +31,21 @@ router.get(
 router.get(
   "/search", 
   asyncHandler(searchProducts)
+);
+
+router.get(
+  "/:id",
+  validate(getProductByIdSchema, "params"),
+  asyncHandler(getProductById),
+);
+
+router.post(
+  "/",
+  authMiddleware,
+  checkRole("admin"),
+  upload.array("image"),
+  validate(createProductSchema),
+  asyncHandler(createProduct)
 );
 
 router.delete(

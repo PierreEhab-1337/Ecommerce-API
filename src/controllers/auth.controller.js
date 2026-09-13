@@ -4,6 +4,7 @@ import createError from '../utils/createError.js';
 import crypto from "crypto";
 import OTP from '../models/OTP.model.js';
 import sendEmail from '../utils/sendEmail.js';
+import { otpEmailTemplate } from '../utils/sendEmail.js';
 import bcryptjs from "bcryptjs";
 
 
@@ -142,7 +143,7 @@ export const forgetPasswordSendOTP = async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
 
-  if (!user) {
+  if(!user){
     throw createError('User not found', 404);
   }
   const otp = crypto.randomInt(100000, 1000000).toString();
@@ -162,7 +163,7 @@ export const forgetPasswordSendOTP = async (req, res) => {
     to: email,
     subject: "Password reset OTP",
     text: `Your OTP for password reset is ${otp}. It will expire in 5 minutes.`,
-    OTPNumber: otp,
+    html: otpEmailTemplate(otp, 5),
   });
   res.status(200).json({
     success: true,
