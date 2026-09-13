@@ -9,7 +9,7 @@ export const registerSchema = Joi.object({
     'string.email': 'Please enter a valid email address',
     'any.required': 'Email is required',
   }),
-  password: Joi.string().min(6).required().messages({
+  password: Joi.string().min(8).required().messages({
     'string.min': 'Password must be at least 8 characters',
     'any.required': 'Password is required',
   }),
@@ -23,7 +23,7 @@ export const loginSchema = Joi.object({
     'string.email': 'Please enter a valid email address',
     'any.required': 'Email is required',
   }),
-  password: Joi.string().min(6).required().messages({
+  password: Joi.string().min(8).required().messages({
     'string.min': 'Password must be at least 8 characters',
     'any.required': 'Password is required',
   }),
@@ -48,7 +48,7 @@ export const verifyOTPSchema = Joi.object({
     'any.required': 'OTP is required'
   }),
 
-  newPassword: Joi.string().min(6).required().messages({
+  newPassword: Joi.string().min(8).required().messages({
     'string.min': 'Password must be at least 8 characters',
     'any.required': 'Password is required',
   })
