@@ -2,8 +2,8 @@ import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
     auth: {
         user: process.env.USER_EMAIL,
         pass: process.env.APP_PASSCODE
@@ -12,14 +12,14 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async ({ to, subject, text, html }) => {
     const info = await transporter.sendMail({
-        from: `"Koda Store" <${'sef.ecommerce.team@gmail.com'}>`,
+        from: `"Koda Store" <${process.env.USER_EMAIL}>`,
         to,
         subject,
         text,
         html, 
     });
 
-    console.log("Email sent:", info.messageId);
+    // console.log("Email sent:", info.messageId);
 };
 
 export const otpEmailTemplate = (otp, expirationTimeInMinutes) => `
