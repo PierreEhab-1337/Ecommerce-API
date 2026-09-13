@@ -35,9 +35,8 @@ export const register = async (req, res) => {
   await sendEmail({
     to: user.email,
     subject: "Verify Your Email - OTP Code",
-    text: `Your OTP code is: ${otp}. It will expire in 1 minutes.`,
-    otp: otp
-
+    text: `Your OTP code is: ${otp}. It will expire in 1 minute.`,
+    html: otpEmailTemplate(otp, 1),
   })
 
   res.status(201).json({
