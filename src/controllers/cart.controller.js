@@ -27,3 +27,32 @@ export const Coupons =
         discountValue: 50,
     },
 }
+export const clearCart = async (req, res) => {
+  const cart = await Cart.findOneAndUpdate(
+    { user: req.user.id },
+    {
+      $set: {
+        items: [],
+      },
+      $unset: {
+        coupon: 1,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!cart) {
+    return res.status(404).json({
+      success: false,
+      message: "Cart not found",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Cart cleared successfully",
+    data: cart,
+  });
+};
