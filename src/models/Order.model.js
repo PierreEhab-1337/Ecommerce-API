@@ -1,100 +1,129 @@
 import mongoose from "mongoose";
+
 import orderItem from "./subdocuments/OrderItem.subdocument.js";
+
 import shippingAddress from "./subdocuments/ShippingAddress.subdocument.js";
 
-const orderSchema = new mongoose.Schema({
+const orderSchema = new mongoose.Schema(
+  {
     user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
+
     items: {
-        type: [orderItem],
-        required: true
+      type: [orderItem],
+      required: true,
     },
+
     shippingAddress: {
-        type: shippingAddress,
-        required: true
+      type: shippingAddress,
+      required: true,
     },
+
     paymentMethod: {
-        type: String,
-        enum: ['cash', 'stripe', 'paypal', 'paymob'],
-        default: 'cash',
+      type: String,
+      enum: ["cash", "stripe", "paypal", "paymob"],
+      default: "cash",
     },
+
     paymentStatus: {
-        type: String,
-        enum: ['pending', 'paid', 'failed', 'refunded'],
-        default: 'pending',
+      type: String,
+      enum: ["pending", "paid", "failed", "refunded"],
+      default: "pending",
     },
+
     transactionId: {
-        type: String,
+      type: String,
     },
+
     subtotal: {
-        type: Number,
-        required: true,
-        min: 0
+      type: Number,
+      required: true,
+      min: 0,
     },
+
     shippingFee: {
-        type: Number,
-        required: true,
-        default: 0,
-        min: 0
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
     },
+
     tax: {
-        type: Number,
-        required: true,
-        default: 0,
-        min: 0
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
     },
+
     discount: {
-        type: Number,
-        default: 0,
-        min: 0
+      type: Number,
+      default: 0,
+      min: 0,
     },
+
     totalPrice: {
-        type: Number,
-        required: true,
-        min: 0
+      type: Number,
+      required: true,
+      min: 0,
     },
+
     status: {
-        type: String,
-        enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'],
-        default: 'pending',
+      type: String,
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "returned",
+      ],
+      default: "pending",
     },
+
     paidAt: {
-        type: Date,
+      type: Date,
     },
+
     deliveredAt: {
-        type: Date,
+      type: Date,
     },
+
     cancelledAt: {
-        type: Date,
+      type: Date,
     },
+
     customerNote: {
-        type: String,
-        maxLength: 1000,
+      type: String,
+      maxLength: 1000,
     },
+
     adminNote: {
-        type: String,
-        maxLength: 1000,
+      type: String,
+      maxLength: 1000,
     },
-},
-{
-    timestamps: true, 
-}
+  },
+  {
+    timestamps: true,
+  },
 );
 
-orderSchema.pre('validate', function (next) {
-  this.subtotal = this.items.reduce((sum, item) => 
-  sum + (item.price * item.quantity), 0);
+orderSchema.pre("validate", function () {
+  this.subtotal = this.items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
 
   this.shippingFee = this.subtotal >= 1000 ? 0 : 50;
 
-  this.tax = this.subtotal* 0.14;
+  this.tax = this.subtotal * 0.14;
 
-  this.totalPrice = this.subtotal + this.shippingFee + this.tax ;
-
-  next();
+  this.totalPrice = this.subtotal + this.shippingFee + this.tax;
 });
-const Order = mongoose.model('Order', orderSchema);
+
+const Order = mongoose.model("Order", orderSchema);
+
 export default Order;
