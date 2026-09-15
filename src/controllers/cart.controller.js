@@ -1,4 +1,6 @@
 import Cart from "../models/Cart.model.js"
+import Product from "../models/Product.model.js";
+import createError from "../utils/createError.js";
 export const Coupons =
 {
     SAVE10:
@@ -27,3 +29,60 @@ export const Coupons =
         discountValue: 50,
     },
 }
+export const getCart = async (req, res) => {
+  let cart = await Cart.findOne({ user: req.user.id });
+
+  if (!cart) {
+    cart = await Cart.create({ user: req.user.id, items: [] });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Cart fetched successfully",
+    data: { cart },
+  });
+};
+
+export const addItemToCart = async (req, res) => {
+  const { productId, quantity = 1 } = req.body;
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    throw createError("Product not found", 404);
+  }
+
+  if (product.stock < quantity) {
+    throw createError("Not enough stock available", 400);
+  }
+
+  let cart = await Cart.findOne({ user: req.user.id });
+  if (!cart) {
+    cart = await Cart.create({ user: req.user.id, items: [] });
+  }
+
+  const existingItem = cart.items.find(
+    (item) => item.product.toString() === productId
+  );
+
+  if (existingItem) {
+    existingItem.quantity += quantity;
+  } else {
+    cart.items.push({
+      product: product._id,
+      name: product.name,
+      image: product.images?.[0]?.url || "",
+      price: product.discountPrice > 0 ? product.discountPrice : product.price,
+      quantity,
+    });
+  }
+
+  product.stock -= quantity;
+  await product.save();
+  await cart.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Item added to cart successfully",
+    data: { cart },
+  });
+};
