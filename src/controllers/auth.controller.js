@@ -51,8 +51,6 @@ export const register = async (req, res,next) => {
   })
 }
 
-
-
 export const verifyOTP = async (req, res, next) => {
   const { email, otp } = req.body;
 
@@ -103,10 +101,6 @@ export const verifyOTP = async (req, res, next) => {
   });
 };
 
-
-
-
-
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -147,7 +141,6 @@ export const login = async (req, res) => {
   });
 };
 
-//task3
 export const forgetPasswordSendOTP = async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
@@ -180,8 +173,6 @@ export const forgetPasswordSendOTP = async (req, res) => {
   });
 };
 
-
-
 export const forgetPasswordVerifyOTP = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
@@ -212,7 +203,6 @@ export const forgetPasswordVerifyOTP = async (req, res) => {
 
   })
 };
-////
 
 export const getProfile = async (req, res) => {
   const user = await User.findById(req.user.id);
