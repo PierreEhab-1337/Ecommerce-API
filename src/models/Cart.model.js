@@ -12,6 +12,8 @@ const cartSchema = new mongoose.Schema(
     items: {
       type: [
         {
+          _id: false,
+          
           product: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Product",
@@ -71,6 +73,7 @@ const cartSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    id: false,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   },
