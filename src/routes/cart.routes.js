@@ -1,13 +1,27 @@
 import express from "express";
-import { getCart, addItemToCart } from "../controllers/cart.controller.js";
-import validate from "../middleware/validateHandler.middleware.js";
-import authMiddleware from "../middleware/auth.middleware.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import { addItemSchema } from "../validators/cart.validation.js";
+import authMiddleware from "../middleware/auth.middleware.js";
+import validate from "../middleware/validateHandler.middleware.js";
+import {
+  addItemSchema,
+  updateCartItemSchema,
+  removeCartItemParamSchema,
+} from "../validators/cart.validation.js";
+import {
+  getCart, 
+  addItemToCart,
+  updateCartItemQuantity,
+  removeCartItem,
+} from "../controllers/cart.controller.js";
 
 const router = express.Router();
 
 router.get("/", authMiddleware, asyncHandler(getCart));
+
 router.post("/items", authMiddleware, validate(addItemSchema), asyncHandler(addItemToCart));
+
+router.patch("/items", authMiddleware, validate(updateCartItemSchema, "body"), asyncHandler(updateCartItemQuantity));
+
+router.delete("/items/:productId", authMiddleware, validate(removeCartItemParamSchema, "params"), asyncHandler(removeCartItem));
 
 export default router;
