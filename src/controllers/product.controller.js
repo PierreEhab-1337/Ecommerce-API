@@ -202,7 +202,6 @@ export const createProduct = async (req, res, next) => {
     });
 };
 
-
 // ----------------------------------------------- addReview -----------------------------------------------
 
 export const addReview = async (req, res) => {
