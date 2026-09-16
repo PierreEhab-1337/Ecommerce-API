@@ -48,20 +48,12 @@ export const updateCartItemQuantity = async (req, res) => {
         throw createError("Product not found", 404);
     }
 
-    const difference = quantity - item.quantity;
-
-    if (difference > 0) {
-        if (product.stock < difference) {
-            throw createError("Insufficient stock", 400);
-        }
-        product.stock -= difference;
-    } else if (difference < 0) {
-        product.stock += Math.abs(difference);
+    if (product.stock < quantity) {
+        throw createError("Insufficient stock", 400);
     }
 
     item.quantity = quantity;
 
-    await product.save();
     await cart.save();
 
     res.status(200).json({
@@ -82,12 +74,6 @@ export const removeCartItem = async (req, res) => {
     const itemIndex = cart.items.findIndex((item) => item.product.toString() === productId);
     if (itemIndex === -1) {
         throw createError("Item not found in cart", 404);
-    }
-
-    const product = await Product.findById(productId);
-    if (product) {
-        product.stock += cart.items[itemIndex].quantity;
-        await product.save();
     }
 
     cart.items.splice(itemIndex, 1);
