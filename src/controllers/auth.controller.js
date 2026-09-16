@@ -8,44 +8,48 @@ import { otpEmailTemplate } from '../utils/sendEmail.js';
 import bcryptjs from "bcryptjs";
 
 
-export const register = async (req, res) => {
+export const register = async (req, res,next) => {
   const data = req.body;
   data.email = data.email.toLowerCase().trim()
 
   // 1. التحقق من وجود الإيميل مسبقاً
   const duplicatedEmail = await User.findOne({ email: data.email })
   if (duplicatedEmail) {
-    return res.status(400).json({ message: "Email is already taken" })
+        return next(createError("Email is already taken", 400))
+
   }
-
-  // 2. توليد رمز OTP وتحديد وقت انتهائه ( دقيقة)
-  const otp = Math.floor(100000 + Math.random() * 900000).toString() // 6 أرقام
-  const otpExpires = new Date(Date.now() + 2 * 60 * 1000)
-
+  
   const user = new User({
     ...data,
     isVerified: false,
-    otp,
-    otpExpires,
   })
-
   await user.save()
+  
+    // 2. توليد رمز OTP وتحديد وقت انتهائه (2 دقيقة)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString() // 6 أرقام
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000)
 
+   await OTP.create({
+      email: user.email,
+      otp,
+      expiresAt,
+    });
   // 4. إرسال الإيميل للمستخدم
   await sendEmail({
     to: user.email,
     subject: "Verify Your Email - OTP Code",
     text: `Your OTP code is: ${otp}. It will expire in 1 minute.`,
-    html: otpEmailTemplate(otp, 1),
+    html: otpEmailTemplate(otp, 2),
   })
 
+  
+
   res.status(201).json({
+    success:true,
     message: "Registration successful. Please check your email for the OTP code.",
     email: user.email,
   })
 }
-
-
 
 export const verifyOTP = async (req, res, next) => {
   const { email, otp } = req.body;
@@ -65,39 +69,37 @@ export const verifyOTP = async (req, res, next) => {
   }
 
   if (user.isVerified) {
-    return res.status(400).json({ message: "Account is already verified" });
+      return next(createError("Account is already verified", 400));
   }
 
-  // تحويل الـ otp المخزن في قاعدة البيانات إلى نص أيضاً
-  const storedOtp = String(user.otp).trim();
+  // 2. جلب الـ OTP الخاص بالإيميل من قاعدة البيانات
+    const otpEmail = await OTP.findOne({ email: cleanEmail });
+    if (!otpEmail) {
+      return next(createError("OTP code has expired or does not exist. Please request a new one", 400));
+    }
 
-  //console.log("OTP from Database    :", storedOtp, typeof storedOtp);
-  
+    // 3. مقارنة الـ OTP المدخل بالـ Hash باستخدام bcryptjs
+    const isMatch = await bcryptjs.compare(inputOtp, otpEmail.otp);
+    if (!isMatch) {
+      return next(createError("Invalid OTP code", 400));
+    }
 
-  // المقارنة بعد التأكد من أن الطرفين عبارة عن String
-  if (storedOtp !== inputOtp) {
-    return next(createError("Invalid OTP code", 400));
-  }
-
-  if (new Date() > user.otpExpires) {
+  if (new Date() > user.expiresAt) {
     return next(createError("OTP code has expired. Please request a new one", 400));
   }
 
   // تفعيل الحساب
   user.isVerified = true;
-  user.otp = undefined;
-  user.otpExpires = undefined;
-
   await user.save();
+  await OTP.deleteOne({ _id: otpEmail._id })
+
 
   res.status(200).json({
+    success: true,
     message: "Email verified successfully. You can now login.",
+    data : user
   });
 };
-
-
-
-
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -139,7 +141,6 @@ export const login = async (req, res) => {
   });
 };
 
-//task3
 export const forgetPasswordSendOTP = async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
@@ -172,8 +173,6 @@ export const forgetPasswordSendOTP = async (req, res) => {
   });
 };
 
-
-
 export const forgetPasswordVerifyOTP = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
@@ -204,7 +203,6 @@ export const forgetPasswordVerifyOTP = async (req, res) => {
 
   })
 };
-////
 
 export const getProfile = async (req, res) => {
   const user = await User.findById(req.user.id);

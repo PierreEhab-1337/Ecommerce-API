@@ -14,6 +14,7 @@ const app = express();
 
 app.use(cors());
 
+
 //Parses incoming JSON data sent from the frontend
 app.use(express.json());
 
