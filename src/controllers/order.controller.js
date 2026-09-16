@@ -20,7 +20,7 @@ export const createOrder = async (req, res) => {
   try {
     // ----------------------------------- Get Order Data -----------------------------------
 
-    const { addressId, paymentMethod = "cash", customerNote } = req.body;
+    const { shippingAddress, paymentMethod = "cash", customerNote } = req.body;
 
     const userId = req.user.id;
 
@@ -28,6 +28,12 @@ export const createOrder = async (req, res) => {
 
     if (!["cash", "stripe"].includes(paymentMethod)) {
       throw createError(`Payment method "${paymentMethod}" not supported`, 400);
+    }
+
+    // ----------------------------------- Validate Shipping Address -----------------------------------
+
+    if (!shippingAddress) {
+      throw createError("Shipping address is required", 400);
     }
 
     // ----------------------------------- Fetch User -----------------------------------
@@ -38,17 +44,13 @@ export const createOrder = async (req, res) => {
       throw createError("User not found", 404);
     }
 
-    // ----------------------------------- Get Shipping Address -----------------------------------
+    // ----------------------------------- Add Shipping Address to User -----------------------------------
 
-    if (!addressId) {
-      throw createError("Shipping address is required", 400);
-    }
+    user.addresses.push(shippingAddress);
 
-    const selectedAddress = user.addresses.id(addressId);
+    await user.save({ session });
 
-    if (!selectedAddress) {
-      throw createError("Shipping address not found", 404);
-    }
+    const selectedAddress = user.addresses[user.addresses.length - 1];
 
     // ----------------------------------- Fetch the Cart -----------------------------------
 
@@ -103,7 +105,6 @@ export const createOrder = async (req, res) => {
           user: userId,
           items: orderItems,
 
-          // Save a copy of the selected address in the Order
           shippingAddress: selectedAddress.toObject(),
 
           paymentMethod,
