@@ -20,24 +20,6 @@ const cartSchema = new mongoose.Schema(
             required: true,
           },
 
-          name: {
-            type: String,
-            trim: true,
-            required: true,
-          },
-
-          image: {
-            type: String,
-            trim: true,
-            required: true,
-          },
-
-          price: {
-            type: Number,
-            required: true,
-            min: [0, "Price cannot be negative"],
-          },
-
           quantity: {
             type: Number,
             required: true,
@@ -47,6 +29,24 @@ const cartSchema = new mongoose.Schema(
               message: "Quantity must be an integer",
             },
           },
+
+          // name: {
+          //   type: String,
+          //   trim: true,
+          //   required: true,
+          // },
+
+          // image: {
+          //   type: String,
+          //   trim: true,
+          //   required: true,
+          // },
+
+          // price: {
+          //   type: Number,
+          //   required: true,
+          //   min: [0, "Price cannot be negative"],
+          // },
         },
       ],
       default: [],
@@ -83,8 +83,7 @@ const cartSchema = new mongoose.Schema(
 cartSchema.virtual("subtotal").get(
     function () {
         return this.items.reduce((total, item) =>
-
-            total + item.price * item.quantity, 0
+          total + (item.product?.discountPrice > 0 ? item.product.discountPrice : item.product?.price) * item.quantity, 0
         )
     }
 )
