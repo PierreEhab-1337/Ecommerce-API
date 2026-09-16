@@ -20,9 +20,35 @@ export const createOrder = async (req, res) => {
   try {
     // ----------------------------------- Get Order Data -----------------------------------
 
-    const { shippingAddress, paymentMethod = "cash", customerNote } = req.body;
+    const { addressId, paymentMethod = "cash", customerNote } = req.body;
 
     const userId = req.user.id;
+
+    // ----------------------------------- Validate Payment Method -----------------------------------
+
+    if (!["cash", "stripe"].includes(paymentMethod)) {
+      throw createError(`Payment method "${paymentMethod}" not supported`, 400);
+    }
+
+    // ----------------------------------- Fetch User -----------------------------------
+
+    const user = await User.findById(userId).session(session);
+
+    if (!user) {
+      throw createError("User not found", 404);
+    }
+
+    // ----------------------------------- Get Shipping Address -----------------------------------
+
+    if (!addressId) {
+      throw createError("Shipping address is required", 400);
+    }
+
+    const selectedAddress = user.addresses.id(addressId);
+
+    if (!selectedAddress) {
+      throw createError("Shipping address not found", 404);
+    }
 
     // ----------------------------------- Fetch the Cart -----------------------------------
 
@@ -36,9 +62,9 @@ export const createOrder = async (req, res) => {
       throw createError("Cart is empty", 400);
     }
 
-    const orderItems = [];
-
     // ----------------------------------- Validate Products and Stock -----------------------------------
+
+    const orderItems = [];
 
     for (const cartItem of cart.items) {
       const product = cartItem.product;
@@ -49,7 +75,7 @@ export const createOrder = async (req, res) => {
 
       if (product.stock < cartItem.quantity) {
         throw createError(
-          `Not enough stock for "${product.name}". Available: ${product.stock}`,
+          `Product "${product.name}" does not have enough stock`,
           400,
         );
       }
@@ -60,10 +86,14 @@ export const createOrder = async (req, res) => {
         product: product._id,
         name: product.name,
         image: product.images[0]?.url,
-        price: product.price,
+        price: cartItem.price,
         quantity: cartItem.quantity,
       });
     }
+
+    // ----------------------------------- Get Cart Discount -----------------------------------
+
+    const discountAmount = cart.discountAmount || 0;
 
     // ----------------------------------- Create Order -----------------------------------
 
@@ -72,38 +102,37 @@ export const createOrder = async (req, res) => {
         {
           user: userId,
           items: orderItems,
-          shippingAddress,
+
+          // Save a copy of the selected address in the Order
+          shippingAddress: selectedAddress.toObject(),
+
           paymentMethod,
+          paymentStatus: "pending",
+          discount: discountAmount,
           customerNote,
         },
       ],
       { session },
     );
 
-    // ----------------------------------- Update Product Stock -----------------------------------
-
-    for (const cartItem of cart.items) {
-      await Product.findByIdAndUpdate(
-        cartItem.product._id,
-        { $inc: { stock: -cartItem.quantity } },
-        { session },
-      );
-    }
-
     // ----------------------------------- Clear the Cart -----------------------------------
 
     cart.items = [];
+    cart.coupon = undefined;
+
     await cart.save({ session });
 
     // ----------------------------------- Handle Cash Payment -----------------------------------
 
     if (paymentMethod === "cash") {
+      order.paymentStatus = "pending";
+
+      await order.save({ session });
+
       await session.commitTransaction();
       session.endSession();
 
       // ----------------------------------- Send Order Confirmation Email -----------------------------------
-
-      const user = await User.findById(userId);
 
       await sendEmail({
         to: user.email,
@@ -127,9 +156,11 @@ export const createOrder = async (req, res) => {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(order.totalPrice * 100),
         currency: "egp",
+
         metadata: {
           orderId: order._id.toString(),
         },
+
         automatic_payment_methods: {
           enabled: true,
         },
@@ -148,12 +179,10 @@ export const createOrder = async (req, res) => {
 
       // ----------------------------------- Send Order Confirmation Email -----------------------------------
 
-      const user = await User.findById(userId);
-
       await sendEmail({
         to: user.email,
-        subject: "Order Confirmation - KODA STORE",
-        text: `Your order ${order._id} has been created successfully.`,
+        subject: "Order Created - KODA STORE",
+        text: `Your order ${order._id} has been created. Please complete your payment.`,
         html: orderEmailTemplate(order),
       });
 
@@ -166,10 +195,6 @@ export const createOrder = async (req, res) => {
         },
       });
     }
-
-    // ----------------------------------- Unsupported Payment Method -----------------------------------
-
-    throw createError(`Payment method "${paymentMethod}" not supported`, 400);
   } catch (error) {
     // ----------------------------------- Rollback Transaction -----------------------------------
 
