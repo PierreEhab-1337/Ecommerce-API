@@ -5,24 +5,24 @@ import {
   getActiveProduct,
   getProductById,
   searchProducts,
+  createProduct,
   addReview,
   getProductReviews,
   deleteReview,
+  updateProduct,
+  deleteProduct,
 } from "../controllers/product.controller.js";
 import {
   getProductByIdSchema,
   getProductsQuerySchema,
   addReviewSchema,
+  createProductSchema,
+  updateProductSchema,
 } from "../validators/product.validation.js";
 import validate from "../middleware/validateHandler.middleware.js";
-
+import upload from "../middleware/uploadHandler.js";
+import { checkRole } from "../middleware/checkRole.middleware.js";
 const router = express.Router();
-
-router.get(
-  "/:id",
-  validate(getProductByIdSchema, "params"),
-  asyncHandler(getProductById),
-);
 
 router.get(
   "/",
@@ -33,6 +33,37 @@ router.get(
 router.get(
   "/search", 
   asyncHandler(searchProducts)
+);
+
+router.get(
+  "/:id",
+  validate(getProductByIdSchema, "params"),
+  asyncHandler(getProductById),
+);
+
+router.post(
+  "/",
+  authMiddleware,
+  checkRole("admin"),
+  upload.array("image"),
+  validate(createProductSchema),
+  asyncHandler(createProduct)
+);
+router.put(
+  "/update/:id",
+  authMiddleware,
+  checkRole("admin"),
+  upload.array("image"),
+  validate(getProductByIdSchema, "params"),
+  validate(updateProductSchema, "body"),
+  asyncHandler(updateProduct)
+);
+router.delete(
+  "/:id",
+  authMiddleware,
+  checkRole("admin"),
+  validate(getProductByIdSchema, "params"),
+  asyncHandler(deleteProduct)
 );
 
 router.delete(

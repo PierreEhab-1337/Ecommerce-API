@@ -52,7 +52,6 @@ export const GetUserById = async (req, res) => {
     });
 };
 
-
 export const updateUser = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
@@ -76,6 +75,7 @@ export const updateUser = async (req, res) => {
     });
 
 };
+
 export const deleteUser = async (req, res) => {
     const { id } = req.params;
 
