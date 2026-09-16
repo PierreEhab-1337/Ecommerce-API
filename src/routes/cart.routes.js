@@ -25,6 +25,6 @@ router.patch("/items", authMiddleware, validate(updateCartItemSchema, "body"), a
 
 router.delete("/items/:productId", authMiddleware, validate(removeCartItemParamSchema, "params"), asyncHandler(removeCartItem));
 
-router.delete("/clear", authMiddleware, clearCart);
+router.delete("/clear", authMiddleware, asyncHandler(clearCart));
 
 export default router;
