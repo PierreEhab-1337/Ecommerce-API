@@ -1,14 +1,15 @@
-import express from "express";
-import authMiddleware from "../middleware/auth.middleware.js";
-import { clearWishlist  } from "../controllers/wishlist.controller.js";
+import express from "express"
+import authMiddleware from "../middleware/auth.middleware.js"
+import { clearWishlist  } from "../controllers/wishlist.controller.js"
+import asyncHandler from "../utils/asyncHandler.js" 
+const router = express.Router()
 
-const router = express.Router();
 
 
 router.delete(
   "/clear",
   authMiddleware,
-  clearWishlist
-);
+  asyncHandler(clearWishlist)
+) 
 
-export default router;
+export default router
