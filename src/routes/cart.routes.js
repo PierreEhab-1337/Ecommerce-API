@@ -12,13 +12,13 @@ const router = express.Router();
 
 router.post(
     "/coupon",
-    // authMiddleware,
+    authMiddleware,
     asyncHandler(postCartsCoupon)
 );
 
 router.delete(
     "/coupon",
-    // authMiddleware,
+    authMiddleware,
     asyncHandler(deleteCartsCoupon)
 );
 
