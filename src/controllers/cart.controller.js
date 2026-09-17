@@ -30,8 +30,28 @@ export const Coupons =
     },
 }
 
+const cartResponseStructure = (cart) => {
+    const items = cart.items.map((item) => ({
+        product: item.product._id,
+        name: item.product?.name,
+        price: item.product?.discountPrice > 0 ? item.product.discountPrice : item.product?.price ,
+        image: item.product?.images?.[0]?.url,
+        quantity: item.quantity,
+    }));
+    return(
+        {
+            subtotal: cart.subtotal,
+            discountAmount: cart.discountAmount,
+            total: cart.total,
+            itemCount: cart.itemCount,
+            coupon: cart.coupon.code || null,
+            items,
+        }
+    )
+};
+
 export const getCart = async (req, res) => {
-  let cart = await Cart.findOne({ user: req.user.id });
+  let cart = await Cart.findOne({ user: req.user.id }).populate("items.product", "name price discountPrice images");
 
   if (!cart) {
     cart = await Cart.create({ user: req.user.id, items: [] });
@@ -40,7 +60,7 @@ export const getCart = async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Cart fetched successfully",
-    data: { cart },
+    data: cartResponseStructure(cart),
   });
 };
 
@@ -70,9 +90,6 @@ export const addItemToCart = async (req, res) => {
   } else {
     cart.items.push({
       product: product._id,
-      name: product.name,
-      image: product.images?.[0]?.url || "",
-      price: product.discountPrice > 0 ? product.discountPrice : product.price,
       quantity,
     });
   }
@@ -81,22 +98,24 @@ export const addItemToCart = async (req, res) => {
   await product.save();
   await cart.save();
 
+  const updatedCart = await Cart.findOne({ user: req.user.id }).populate("items.product", "name price discountPrice images");
+
   res.status(200).json({
     success: true,
     message: "Item added to cart successfully",
-    data: { cart },
+    data: cartResponseStructure(updatedCart),
   });
 };
 
 export const updateCartItemQuantity = async (req, res) => {
     const { productId, quantity } = req.body;
 
-    const cart = await Cart.findOne({ user: req.user.id });
+    const cart = await Cart.findOne({ user: req.user.id }).populate("items.product", "name price discountPrice images");;
     if (!cart) {
         throw createError("Cart not found", 404);
     }
 
-    const item = cart.items.find((item) => item.product.toString() === productId);
+    const item = cart.items.find((item) => item.product._id.toString() === productId);
     if (!item) {
         throw createError("Item not found in cart", 404);
     }
@@ -106,46 +125,32 @@ export const updateCartItemQuantity = async (req, res) => {
         throw createError("Product not found", 404);
     }
 
-    const difference = quantity - item.quantity;
-
-    if (difference > 0) {
-        if (product.stock < difference) {
-            throw createError("Insufficient stock", 400);
-        }
-        product.stock -= difference;
-    } else if (difference < 0) {
-        product.stock += Math.abs(difference);
+    if (product.stock < quantity) {
+        throw createError("Insufficient stock", 400);
     }
 
     item.quantity = quantity;
 
-    await product.save();
     await cart.save();
 
     res.status(200).json({
         success: true,
         message: "Cart item updated successfully",
-        data: cart
+        data: cartResponseStructure(cart),
     });
 };
 
 export const removeCartItem = async (req, res) => {
     const { productId } = req.params;
 
-    const cart = await Cart.findOne({ user: req.user.id });
+    const cart = await Cart.findOne({ user: req.user.id }).populate("items.product", "name price discountPrice images");
     if (!cart) {
         throw createError("Cart not found", 404);
     }
 
-    const itemIndex = cart.items.findIndex((item) => item.product.toString() === productId);
+    const itemIndex = cart.items.findIndex((item) => item.product._id.toString() === productId);
     if (itemIndex === -1) {
         throw createError("Item not found in cart", 404);
-    }
-
-    const product = await Product.findById(productId);
-    if (product) {
-        product.stock += cart.items[itemIndex].quantity;
-        await product.save();
     }
 
     cart.items.splice(itemIndex, 1);
@@ -154,6 +159,96 @@ export const removeCartItem = async (req, res) => {
     res.status(200).json({
         success: true,
         message: "Item removed from cart successfully",
-        data: cart
+        data: cartResponseStructure(cart),
     });
+};
+
+export const clearCart = async (req, res) => {
+  const cart = await Cart.findOneAndUpdate(
+    { user: req.user.id },
+    {
+      $set: {
+        items: [],
+      },
+      $unset: {
+        coupon: 1,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!cart) {
+    return res.status(404).json({
+      success: false,
+      message: "Cart not found",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Cart cleared successfully",
+    data: cart,
+  });
+};
+
+// post cart coupon
+
+export const postCartsCoupon = async (req, res) => {
+  const { code } = req.body;
+  const userId = req.user.id;
+
+  if (!userId) {
+    throw createError("userId is required", 400);
+  }
+
+  if (!code || !Coupons[code]) {
+    throw createError("This code is invalid or expired !!", 400);
+  }
+
+  let cart = await Cart.findOne({ user: userId });
+  if (!cart) {
+    throw createError("Cart not found", 404);
+  }
+
+  const coupon = Coupons[code];
+  cart.coupon = {
+    code,
+    discountType: coupon.discountType,
+    discountValue: coupon.discountValue,
+  };
+
+  await cart.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Coupon is applied successfully",
+    data: { cart },
+  });
+};
+
+// delete cart coupon
+
+export const deleteCartsCoupon = async (req, res) => {
+  const userId = req.user.id;
+
+  if (!userId) {
+    throw createError("userId is required", 400);
+  }
+
+  const cart = await Cart.findOne({ user: userId });
+
+  if (!cart) {
+    throw createError("Cart not found", 404);
+  }
+
+  cart.coupon = undefined;
+  await cart.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Coupon is deleted successfully",
+    data: { cart },
+  });
 };

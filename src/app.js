@@ -8,11 +8,15 @@ import userRouter from "./routes/user.routes.js";
 import productRouter from "./routes/product.routes.js";
 import cartRouter from "./routes/cart.routes.js";
 import wishlistRouter from "./routes/wishlist.routes.js";
+import orderRouter from "./routes/order.routes.js";
+import stripeRouter from "./routes/stripe.webhook.routes.js";
+
 
 const app = express();
 
 app.use(cors());
 
+app.use('/stripe/webhook', stripeRouter)
 
 //Parses incoming JSON data sent from the frontend
 app.use(express.json());
@@ -25,6 +29,7 @@ app.use('/users', userRouter);
 app.use('/products', productRouter);
 app.use('/carts', cartRouter);
 app.use('/wishlists',wishlistRouter);
+app.use('/orders', orderRouter);
 
 app.get('/', (req, res) => {res.send("Ecommerce API Endpoint")});
 
