@@ -2,6 +2,8 @@ import express from "express";
 import asyncHandler from "../utils/asyncHandler.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { checkRole } from "../middleware/checkRole.middleware.js";
+import validate from "../middleware/validateHandler.middleware.js"
+
 import { 
     getWishlist, 
     addToWishlist, 
@@ -10,6 +12,11 @@ import {
     getAllWishlists,
     getWishlistStats 
 } from "../controllers/wishlist.controller.js";
+
+import {
+  getAllWishlistSchema,
+  wishlistIdSchema,
+} from "../validators/wishlist.validation.js"
 
 const router = express.Router();
 
@@ -22,13 +29,15 @@ router.get(
 router.post(
   "/add/:productId", 
   authMiddleware, 
-  asyncHandler(addToWishlist)
+  validate(wishlistIdSchema, "params"),
+  asyncHandler(addToWishlist),
 );
 
 router.delete(
   "/remove/:productId", 
   authMiddleware, 
-  asyncHandler(removeFromWishlist)
+  validate(wishlistIdSchema, "params"),
+  asyncHandler(removeFromWishlist),
 );
 
 router.delete(
@@ -41,6 +50,7 @@ router.get(
     "/admin/all",
     authMiddleware,
     checkRole("admin"),
+    validate(getAllWishlistSchema, "query"),
     asyncHandler(getAllWishlists)
 );
 
