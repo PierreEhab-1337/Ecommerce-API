@@ -97,7 +97,7 @@ export const removeFromWishlist = async (req, res) => {
 }
 
 export const clearWishlist = async (req, res, next) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
 
   const wishlist = await Wishlist.findOne({ user: userId });
 

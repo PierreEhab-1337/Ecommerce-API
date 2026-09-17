@@ -52,7 +52,7 @@ router.get(
   "/admin/:id",
   authMiddleware,
   checkRole("admin"),
-  validate(orderIdSchema),
+  validate(orderIdSchema, 'params'),
   asyncHandler(getAdminOrderById)
 )
 
