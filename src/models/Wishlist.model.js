@@ -17,7 +17,6 @@ const wishlistSchema = new mongoose.Schema({
 
 wishlistSchema.pre(/^find/, function () {
   this.populate("products");
-
 })
  
  

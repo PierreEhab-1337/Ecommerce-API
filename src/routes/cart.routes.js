@@ -53,15 +53,15 @@ router.delete(
 );
 
 router.post(
-    "/coupon",
-    authMiddleware,
-    asyncHandler(postCartsCoupon)
+  "/coupon",
+  authMiddleware,
+  asyncHandler(postCartsCoupon)
 );
 
 router.delete(
-    "/coupon",
-    authMiddleware,
-    asyncHandler(deleteCartsCoupon)
+  "/coupon",
+  authMiddleware,
+  asyncHandler(deleteCartsCoupon)
 );
 
 export default router;
