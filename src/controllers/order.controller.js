@@ -44,18 +44,30 @@ export const createOrder = async (req, res) => {
       throw createError("User not found", 404);
     }
 
-    // ----------------------------------- Add Shipping Address to User -----------------------------------
+    // ------------------- Validate if Address was previously Added to User  ------------------
 
-    user.addresses.push(shippingAddress);
+    const addressExists = user.addresses.some((userAddress) => (
+      userAddress.fullName === shippingAddress.fullName && 
+      userAddress.phone === shippingAddress.phone && 
+      userAddress.country === shippingAddress.country && 
+      userAddress.city === shippingAddress.city && 
+      userAddress.address === shippingAddress.address && 
+      userAddress.postalCode === shippingAddress.postalCode
+    ))
 
-    await user.save({ session });
+    // -------------------- Add Shipping Address to User if It didn't Exist ------------
 
-    const selectedAddress = user.addresses[user.addresses.length - 1];
+    if(!addressExists){
+      user.addresses.push(shippingAddress);
+      await user.save({ session });
+    }
+    
+    // const selectedAddress = user.addresses[user.addresses.length - 1];
 
     // ----------------------------------- Fetch the Cart -----------------------------------
 
     const cart = await Cart.findOne({ user: userId })
-      .populate("items.product", "name images price stock")
+      .populate("items.product", "name images price discountPrice stock")
       .session(session);
 
     // ----------------------------------- Check if Cart is Empty -----------------------------------
@@ -88,7 +100,7 @@ export const createOrder = async (req, res) => {
         product: product._id,
         name: product.name,
         image: product.images[0]?.url,
-        price: cartItem.price,
+        price: product.discountPrice > 0 ? product.discountPrice : product.price ,
         quantity: cartItem.quantity,
       });
     }
@@ -105,7 +117,8 @@ export const createOrder = async (req, res) => {
           user: userId,
           items: orderItems,
 
-          shippingAddress: selectedAddress.toObject(),
+          // shippingAddress: selectedAddress.toObject(),
+          shippingAddress,
 
           paymentMethod,
           paymentStatus: "pending",
@@ -115,6 +128,16 @@ export const createOrder = async (req, res) => {
       ],
       { session },
     );
+
+    // ----------------------------------- Update Product Stock -----------------------------------
+
+    for(const cartItem of cart.items) {
+      await Product.findByIdAndUpdate(
+        cartItem.product._id,
+        { $inc: { stock: -cartItem.quantity } },
+        { session },
+      );
+    }
 
     // ----------------------------------- Clear the Cart -----------------------------------
 
@@ -127,6 +150,7 @@ export const createOrder = async (req, res) => {
 
     if (paymentMethod === "cash") {
       order.paymentStatus = "pending";
+      order.status = "confirmed";
 
       await order.save({ session });
 
@@ -229,6 +253,9 @@ export const getMyOrders = async (req, res) => {
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
+
+  if(orders.length === 0)
+    throw createError("No Orders Found!", 404);
 
   const totalOrders = await Order.countDocuments(filter);
 

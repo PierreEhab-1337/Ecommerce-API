@@ -53,6 +53,7 @@ export const stripeWebhook = async (req, res) => {
 // ----------------------------------- Update Payment Status -------------------------
 
       order.paymentStatus = "paid";
+      order.status = "confirmed";
       order.paidAt = new Date();
 
       await order.save();
@@ -118,6 +119,7 @@ export const stripeWebhook = async (req, res) => {
 // ----------------------------------- Update Payment Status --------------------------
 
       order.paymentStatus = "failed";
+      order.status = "cancelled";
 
       await order.save();
 

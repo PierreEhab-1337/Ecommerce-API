@@ -8,12 +8,14 @@ import userRouter from "./routes/user.routes.js";
 import productRouter from "./routes/product.routes.js";
 import cartRouter from "./routes/cart.routes.js";
 import orderRouter from "./routes/order.routes.js";
+import stripeRouter from "./routes/stripe.webhook.routes.js";
 
 
 const app = express();
 
 app.use(cors());
 
+app.use('/stripe/webhook', stripeRouter)
 
 //Parses incoming JSON data sent from the frontend
 app.use(express.json());
