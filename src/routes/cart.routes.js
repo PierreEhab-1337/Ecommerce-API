@@ -12,19 +12,56 @@ import {
   addItemToCart,
   updateCartItemQuantity,
   removeCartItem,
-  clearCart
+  clearCart,
+  postCartsCoupon,
+  deleteCartsCoupon,
 } from "../controllers/cart.controller.js";
 
 const router = express.Router();
 
-router.get("/", authMiddleware, asyncHandler(getCart));
+router.get(
+  "/", 
+  authMiddleware, 
+  asyncHandler(getCart)
+);
 
-router.post("/items", authMiddleware, validate(addItemSchema), asyncHandler(addItemToCart));
+router.post(
+  "/items", 
+  authMiddleware, 
+  validate(addItemSchema), 
+  asyncHandler(addItemToCart)
+);
 
-router.patch("/items", authMiddleware, validate(updateCartItemSchema, "body"), asyncHandler(updateCartItemQuantity));
+router.patch(
+  "/items", 
+  authMiddleware, 
+  validate(updateCartItemSchema, "body"), 
+  asyncHandler(updateCartItemQuantity)
+);
 
-router.delete("/items/:productId", authMiddleware, validate(removeCartItemParamSchema, "params"), asyncHandler(removeCartItem));
+router.delete(
+  "/items/:productId", 
+  authMiddleware, 
+  validate(removeCartItemParamSchema, "params"), 
+  asyncHandler(removeCartItem)
+);
 
-router.delete("/clear", authMiddleware, asyncHandler(clearCart));
+router.delete(
+  "/clear", 
+  authMiddleware, 
+  asyncHandler(clearCart)
+);
+
+router.post(
+    "/coupon",
+    authMiddleware,
+    asyncHandler(postCartsCoupon)
+);
+
+router.delete(
+    "/coupon",
+    authMiddleware,
+    asyncHandler(deleteCartsCoupon)
+);
 
 export default router;
