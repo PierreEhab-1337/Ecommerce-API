@@ -2,16 +2,19 @@ import express from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
 import validate from "../middleware/validateHandler.middleware.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { checkRole } from "../middleware/checkRole.middleware.js";
 
 import { 
   createOrder,
   getMyOrders,
   GetMyOrderById,
   CancelMyOrder,
+  getAdminOrderById,
 } from "../controllers/order.controller.js";
 
 import { 
   getMyOrdersSchema,
+  orderIdSchema,
 } from "../validators/order.validation.js";
 
 import { idParamSchema } from "../validators/user.validation.js";
@@ -44,6 +47,14 @@ router.patch(
   validate(idParamSchema, 'params'), 
   asyncHandler(CancelMyOrder)
 );
+
+router.get(
+  "/admin/:id",
+  authMiddleware,
+  checkRole("admin"),
+  validate(orderIdSchema),
+  asyncHandler(getAdminOrderById)
+)
 
 export default router;
 

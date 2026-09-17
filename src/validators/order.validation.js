@@ -15,3 +15,10 @@ export const getMyOrdersSchema = Joi.object({
     )
     .optional(),
 });
+
+export const orderIdSchema = Joi.object({
+  id: Joi.string()
+    .length(24)
+    .hex()
+    .required(),
+});
