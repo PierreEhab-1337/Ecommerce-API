@@ -64,16 +64,13 @@ export const getCart = async (req, res) => {
   });
 };
 
+// ------------------------------------------- Add Item To Cart ---------------------------------------------
 export const addItemToCart = async (req, res) => {
   const { productId, quantity = 1 } = req.body;
 
   const product = await Product.findById(productId);
   if (!product) {
     throw createError("Product not found", 404);
-  }
-
-  if (product.stock < quantity) {
-    throw createError("Not enough stock available", 400);
   }
 
   let cart = await Cart.findOne({ user: req.user.id });
@@ -85,8 +82,15 @@ export const addItemToCart = async (req, res) => {
     (item) => item.product.toString() === productId
   );
 
+  const currentQty = existingItem ? existingItem.quantity : 0;
+  const newTotalQty = currentQty + quantity;
+
+  if (newTotalQty > product.stock) {
+    throw createError("Not enough stock available", 400);
+  }
+
   if (existingItem) {
-    existingItem.quantity += quantity;
+    existingItem.quantity = newTotalQty;
   } else {
     cart.items.push({
       product: product._id,
@@ -94,10 +98,9 @@ export const addItemToCart = async (req, res) => {
     });
   }
 
-  product.stock -= quantity;
-  await product.save();
   await cart.save();
 
+ 
   const updatedCart = await Cart.findOne({ user: req.user.id }).populate("items.product", "name price discountPrice images");
 
   res.status(200).json({
