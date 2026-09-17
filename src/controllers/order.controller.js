@@ -276,7 +276,7 @@ export const getMyOrders = async (req, res) => {
 
 export const GetMyOrderById = async (req, res) => {
     const orderId = req.params.id;
-    const userId = req.user._id; 
+    const userId = req.user.id; 
 
     const order = await Order.findOne({ _id: orderId, user: userId });
     
@@ -293,7 +293,7 @@ export const GetMyOrderById = async (req, res) => {
 
 export const CancelMyOrder = async (req, res) => {
     const orderId = req.params.id;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const session = await mongoose.startSession();
     session.startTransaction();
