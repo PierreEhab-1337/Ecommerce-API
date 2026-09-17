@@ -205,7 +205,7 @@ export const forgetPasswordVerifyOTP = async (req, res) => {
 };
 
 export const getProfile = async (req, res) => {
-  const user = await User.findById(req.user.id);
+  const user = await User.findById(req.user.id).populate("wishlist");
 
   if (!user) {
     throw createError("User not found", 404);

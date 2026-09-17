@@ -207,7 +207,7 @@ export const postCartsCoupon = async (req, res) => {
     throw createError("This code is invalid or expired !!", 400);
   }
 
-  let cart = await Cart.findOne({ user: userId });
+  let cart = await Cart.findOne({ user: userId }).populate("items.product", "name price discountPrice images");;
   if (!cart) {
     throw createError("Cart not found", 404);
   }
@@ -224,7 +224,7 @@ export const postCartsCoupon = async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Coupon is applied successfully",
-    data: { cart },
+    data: cartResponseStructure(cart),
   });
 };
 
@@ -237,10 +237,14 @@ export const deleteCartsCoupon = async (req, res) => {
     throw createError("userId is required", 400);
   }
 
-  const cart = await Cart.findOne({ user: userId });
+  const cart = await Cart.findOne({ user: userId }).populate("items.product", "name price discountPrice images");;
 
   if (!cart) {
     throw createError("Cart not found", 404);
+  }
+
+  if (!cart.coupon.code) {
+    throw createError("No coupon is applied to cart", 400);
   }
 
   cart.coupon = undefined;
@@ -249,6 +253,6 @@ export const deleteCartsCoupon = async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Coupon is deleted successfully",
-    data: { cart },
+    data: cartResponseStructure(cart),
   });
 };

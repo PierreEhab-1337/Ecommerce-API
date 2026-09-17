@@ -9,7 +9,6 @@ export const AddUser = async (req, res) => {
         throw createError('User with this email already exists', 400);
     }
 
-    // مش محتاجين نعمل hashing هنا، الـ pre-save hook في الموديل هيعملها لوحده
     const user = new User({ username, email, password, phone, role });
     await user.save();
 
@@ -27,8 +26,7 @@ export const AddUser = async (req, res) => {
 };
 
 export const GetAllUser = async (req, res) => {
-    // مش محتاجين .select('-password') لأنها ملوية تلقائياً select: false في الموديل
-    const users = await User.find({});
+    const users = await User.find({}).populate("wishlist");
     res.status(200).json({
         success: true,
         message: "Users retrieved successfully",
@@ -39,7 +37,7 @@ export const GetAllUser = async (req, res) => {
 export const GetUserById = async (req, res) => {
     const _id = req.params.id;
     
-    const user = await User.findById(_id);
+    const user = await User.findById(_id).populate("wishlist");
     
     if (!user) {
         throw createError('User not found', 404);
@@ -57,7 +55,7 @@ export const updateUser = async (req, res) => {
     const updates = req.body;
 
 
-    const user = await User.findById(id);
+    const user = await User.findById(id).populate("wishlist");
     if (!user) {
         throw createError("User Not Found", 404);
     }
