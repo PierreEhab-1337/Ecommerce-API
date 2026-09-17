@@ -9,12 +9,9 @@ import {
     addToWishlist, 
     removeFromWishlist, 
     clearWishlist,
-    getAllWishlists,
-    getWishlistStats 
 } from "../controllers/wishlist.controller.js";
 
 import {
-  getAllWishlistSchema,
   wishlistIdSchema,
 } from "../validators/wishlist.validation.js"
 
@@ -45,20 +42,5 @@ router.delete(
   authMiddleware,
   asyncHandler(clearWishlist)
 ); 
-
-router.get(
-    "/admin/all",
-    authMiddleware,
-    checkRole("admin"),
-    validate(getAllWishlistSchema, "query"),
-    asyncHandler(getAllWishlists)
-);
-
-router.get(
-    "/admin/stats",
-    authMiddleware,
-    checkRole("admin"),
-    asyncHandler(getWishlistStats)
-);
 
 export default router;  
