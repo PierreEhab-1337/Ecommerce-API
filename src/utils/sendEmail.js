@@ -131,7 +131,7 @@ export const orderEmailTemplate = (order) => `
                     <tr>
                       <td>${item.name}</td>
                       <td align="center">${item.quantity}</td>
-                      <td align="right">${item.price} EGP</td>
+                      <td align="right">${item.price.toFixed(2)} EGP</td>
                     </tr>
                   `,
                 )
@@ -142,21 +142,21 @@ export const orderEmailTemplate = (order) => `
 
             <p>
               <strong>Subtotal:</strong>
-              ${order.subtotal} EGP
+              ${order.subtotal.toFixed(2)} EGP
             </p>
 
             <p>
               <strong>Shipping Fee:</strong>
-              ${order.shippingFee} EGP
+              ${order.shippingFee.toFixed(2)} EGP
             </p>
 
             <p>
               <strong>Tax:</strong>
-              ${order.tax} EGP
+              ${order.tax.toFixed(2)} EGP
             </p>
 
             <h2 style="color:#4f46e5;">
-              Total: ${order.totalPrice} EGP
+              Total: ${order.totalPrice.toFixed(2)} EGP
             </h2>
 
             <hr style="border:0; border-top:1px solid #eeeeee;">
