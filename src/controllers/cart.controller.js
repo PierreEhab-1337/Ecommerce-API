@@ -27,8 +27,8 @@ export const Coupons = {
 // post cart coupon
 
 export const postCartsCoupon = async (req, res) => {
-  const { code, userId } = req.body;
-  //   const userId = req.user.id;
+  const { code } = req.body;
+  const userId = req.user.id;
 
   if (!userId) {
     throw createError("userId is required", 400);
@@ -62,7 +62,7 @@ export const postCartsCoupon = async (req, res) => {
 // delete cart coupon
 
 export const deleteCartsCoupon = async (req, res) => {
-  const {userId} = req.body;
+  const userId = req.user.id;
 
   if (!userId) {
     throw createError("userId is required", 400);
