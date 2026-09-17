@@ -83,9 +83,74 @@ export const getProductsQuerySchema = Joi.object({
 
 // ----------------------------------------------- addReviewSchema -----------------------------------------------
 
-export const addReviewSchema = Joi.object({
-  rating: Joi.number().integer().min(1).max(5).required(),
-  comment: Joi.string().trim().max(1000).allow(""),
+export const addReviewSchema = Joi.object(
+{
+    rating:
+        Joi.number().integer().min(1).max(5).required(),
+    comment:
+        Joi.string().trim().max(1000).allow(""),
 });
 
 
+// ----------------------------------------------- updateProductSchema -----------------------------------------------
+
+export const updateProductSchema = Joi.object({
+  name: Joi.string()
+    .trim()
+    .max(200)
+    .optional(),
+
+  price: Joi.number()
+    .min(0)
+    .optional(),
+
+  shortDescription: Joi.string()
+    .trim()
+    .max(500)
+    .optional(),
+
+  description: Joi.string()
+    .trim()
+    .optional(),
+
+  discountPrice: Joi.number()
+    .min(0)
+    .optional(),
+
+  stock: Joi.number()
+    .integer()
+    .min(0)
+    .optional(),
+
+  sku: Joi.string()
+    .trim()
+    .max(50)
+    .optional(),
+
+  category: Joi.string()
+    .trim()
+    .optional(),
+
+  subcategory: Joi.string()
+    .trim()
+    .optional(),
+
+  brand: Joi.string()
+    .trim()
+    .optional(),
+
+  tags: Joi.array()
+    .items(Joi.string().trim())
+    .optional(),
+
+  featured: Joi.boolean()
+    .optional(),
+
+  isActive: Joi.boolean()
+    .optional(),
+
+  imagesToDelete: Joi.alternatives().try(
+    Joi.array().items(Joi.string().trim()),
+    Joi.string().trim()
+  ).optional(),
+});
