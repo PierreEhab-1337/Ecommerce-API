@@ -1,23 +1,24 @@
-import Joi from "joi";
+import Joi from 'joi';
 
-const orderIdSchema = Joi.object({
+export const getMyOrdersSchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).default(10),
+  status: Joi.string()
+    .valid(
+      'pending',
+      'confirmed',
+      'processing',
+      'shipped',
+      'delivered',
+      'cancelled',
+      'returned'
+    )
+    .optional(),
+});
+
+export const orderIdSchema = Joi.object({
   id: Joi.string()
     .length(24)
     .hex()
     .required(),
 });
-
-const validateOrderId = (req, res, next) => {
-  const { error } = orderIdSchema.validate(req.params);
-
-  if (error) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid order ID",
-    });
-  }
-
-  next();
-};
-
-export default validateOrderId;

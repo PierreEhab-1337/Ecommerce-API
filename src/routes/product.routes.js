@@ -1,20 +1,89 @@
 import express from "express";
-import authMiddleware from "../middleware/auth.middleware.js"
-import {createProduct} from "../controllers/product.controller.js";
-import { checkRole } from "../middleware/checkRole.middleware.js";
-import createProductValidation from "../validators/product.validation.js"
-import upload from "../middleware/uploadHandler.js";
 import asyncHandler from "../utils/asyncHandler.js";
-
+import authMiddleware from "../middleware/auth.middleware.js";
+import {
+  getActiveProduct,
+  getProductById,
+  searchProducts,
+  createProduct,
+  addReview,
+  getProductReviews,
+  deleteReview,
+  updateProduct,
+  deleteProduct,
+} from "../controllers/product.controller.js";
+import {
+  getProductByIdSchema,
+  getProductsQuerySchema,
+  addReviewSchema,
+  createProductSchema,
+  updateProductSchema,
+} from "../validators/product.validation.js";
+import validate from "../middleware/validateHandler.middleware.js";
+import upload from "../middleware/uploadHandler.js";
+import { checkRole } from "../middleware/checkRole.middleware.js";
 const router = express.Router();
+
+router.get(
+  "/",
+  validate(getProductsQuerySchema, "query"),
+  asyncHandler(getActiveProduct),
+);
+
+router.get(
+  "/search", 
+  asyncHandler(searchProducts)
+);
+
+router.get(
+  "/:id",
+  validate(getProductByIdSchema, "params"),
+  asyncHandler(getProductById),
+);
 
 router.post(
   "/",
   authMiddleware,
   checkRole("admin"),
   upload.array("image"),
-  createProductValidation,
+  validate(createProductSchema),
   asyncHandler(createProduct)
+);
+router.put(
+  "/update/:id",
+  authMiddleware,
+  checkRole("admin"),
+  upload.array("image"),
+  validate(getProductByIdSchema, "params"),
+  validate(updateProductSchema, "body"),
+  asyncHandler(updateProduct)
+);
+router.delete(
+  "/:id",
+  authMiddleware,
+  checkRole("admin"),
+  validate(getProductByIdSchema, "params"),
+  asyncHandler(deleteProduct)
+);
+
+router.delete(
+  "/:id/reviews/:rid", 
+  authMiddleware, 
+  asyncHandler(deleteReview)
+);
+
+router.post(
+  "/:id/reviews",
+  authMiddleware,
+  validate(getProductByIdSchema, "params"),
+  validate(addReviewSchema, "body"),
+  asyncHandler(addReview),
+);
+
+router.get(
+  "/:id/reviews",
+  validate(getProductByIdSchema, "params"),
+  asyncHandler(getProductReviews),
 );
 
 export default router;

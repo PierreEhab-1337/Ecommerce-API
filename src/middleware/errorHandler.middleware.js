@@ -26,6 +26,7 @@ export const errorHandler = (err, req, res, next) => {
   err.status = err.status || 'error';
   if (process.env.NODE_ENV === 'development') {
     res.status(err.statusCode).json({
+      success: false,
       status: err.status,
       error: err,
       message: err.message,
@@ -48,6 +49,7 @@ export const errorHandler = (err, req, res, next) => {
       error = handleJWTExpiredError()
 
     res.status(error.statusCode || 500).json({
+      success: false,
       status: error.status || 'error',
       message: error.isOperational ? error.message : 'internal server error',
     })

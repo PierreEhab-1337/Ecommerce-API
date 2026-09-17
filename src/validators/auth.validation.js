@@ -1,85 +1,67 @@
-import Joi from "joi";
-import createError from "../utils/createError.js";
+import Joi from 'joi';
 
-// =========================
-// Register Schema
-// =========================
-const registerSchema = Joi.object({
-  username: Joi.string()
-    .trim()
-    .min(2)
-    .required(),
+export const registerSchema = Joi.object({
+  username: Joi.string().required().messages({
+    'string.email': 'Please enter username',
+    'any.required': 'username is required'
+  }),
+  email: Joi.string().email().required().messages({
+    'string.email': 'Please enter a valid email address',
+    'any.required': 'Email is required',
+  }),
+  password: Joi.string().min(8).required().messages({
+    'string.min': 'Password must be at least 8 characters',
+    'any.required': 'Password is required',
+  }),
+  phone: Joi.string().optional()
 
-  email: Joi.string()
-    .trim()
-    .lowercase()
-    .email()
-    .required(),
+})
 
-  password: Joi.string()
-    .min(6)
-    .required(),
 
-  phone: Joi.string()
-    .trim()
-    .optional(),
-
-  role: Joi.string()
-    .valid("admin", "customer")
-    .default("customer"),
+export const loginSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    'string.email': 'Please enter a valid email address',
+    'any.required': 'Email is required',
+  }),
+  password: Joi.string().min(8).required().messages({
+    'string.min': 'Password must be at least 8 characters',
+    'any.required': 'Password is required',
+  }),
 });
 
-// =========================
-// Login Schema
-// =========================
-const loginSchema = Joi.object({
-  email: Joi.string()
-    .trim()
-    .lowercase()
-    .email()
-    .required(),
+///task3
+export const forgetPasswordSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    'string.email': "Please enter avalid email address",
+    'any.required': "Email is required",
+  })
 
-  password: Joi.string()
-    .required(),
 });
 
-// =========================
-// Register Validator
-// =========================
-export const validateRegister = (req, res, next) => {
-  const { error, value } = registerSchema.validate(req.body);
 
-  if (error) {
-    throw createError(
-      error.details[0].message,
-      400
-    );
-  }
+export const registerVerifyOTPSchema = Joi.object({
+  email: Joi.string().email().required().trim().messages({
+    'string.email': "Please enter avalid email address",
+    'any.required': "Email is required",
+  }),
+  otp: Joi.string().required().length(6).messages({
+    'any.required': 'OTP is required'
+  }),
 
-  req.body = value;
+});
 
-  next();
-};
+export const forgetPasswordVerifyOTPSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    'string.email': "Please enter avalid email address",
+    'any.required': "Email is required",
+  }),
+  otp: Joi.string().required().length(6).messages({
+    'any.required': 'OTP is required'
+  }),
 
-// =========================
-// Login Validator
-// =========================
-export const validateLogin = (req, res, next) => {
-  const { error, value } = loginSchema.validate(req.body);
+  newPassword: Joi.string().min(8).required().messages({
+    'string.min': 'Password must be at least 8 characters',
+    'any.required': 'Password is required',
+  })
 
-  if (error) {
-    throw createError(
-      error.details[0].message,
-      400
-    );
-  }
-
-  req.body = value;
-
-  next();
-};
-
-export default {
-  validateRegister,
-  validateLogin,
-};
+});
