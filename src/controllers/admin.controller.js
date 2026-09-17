@@ -29,28 +29,26 @@ export const getDashboardStats = async (req, res) => {
     recentOrders,
     totalCustomers,
   ] = await Promise.all([
-
+    
     Order.aggregate([
-      { $match: { paymentStatus: "paid" } },
+      { $match: { status: { $nin: ["pending", "cancelled"] } } },
       { $group: { _id: null, total: { $sum: "$totalPrice" } } },
     ]),
-
 
     Order.aggregate([
       {
         $match: {
-          paymentStatus: "paid",
+          status: { $nin: ["pending", "cancelled"] },
           createdAt: { $gte: startOfThisMonth },
         },
       },
       { $group: { _id: null, total: { $sum: "$totalPrice" } } },
     ]),
 
-
     Order.aggregate([
       {
         $match: {
-          paymentStatus: "paid",
+          status: { $nin: ["pending", "cancelled"] },
           createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth },
         },
       },
@@ -60,6 +58,7 @@ export const getDashboardStats = async (req, res) => {
     Order.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
 
     Order.aggregate([
+      { $match: { paymentStatus: "paid" } },
       { $unwind: "$items" },
       {
         $group: {
@@ -76,15 +75,25 @@ export const getDashboardStats = async (req, res) => {
     ]),
 
     Order.aggregate([
-      { $match: { createdAt: { $gte: sevenDaysAgo } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          revenue: { $sum: "$totalPrice" },
-          orderCount: { $sum: 1 },
+     {
+        $match: {
+         paymentStatus: "paid",
+         createdAt: { $gte: sevenDaysAgo },
         },
-      },
-      { $sort: { _id: 1 } },
+     },
+     {
+        $group: {
+         _id: {
+             $dateToString: {
+                 format: "%Y-%m-%d",
+                 date: "$createdAt",
+                },
+            },
+         revenue: { $sum: "$totalPrice" },
+         orderCount: { $sum: 1 },
+        },
+     },
+     { $sort: { _id: 1 } },
     ]),
 
     Order.find()
@@ -94,7 +103,7 @@ export const getDashboardStats = async (req, res) => {
 
     User.countDocuments({ role: "customer" }),
   ]);
-
+  
   const orderCounts = ORDER_STATUSES.reduce((acc, status) => {
     acc[status] = 0;
     return acc;
