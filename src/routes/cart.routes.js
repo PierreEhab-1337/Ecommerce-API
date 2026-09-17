@@ -12,6 +12,7 @@ import {
   addItemToCart,
   updateCartItemQuantity,
   removeCartItem,
+  clearCart
 } from "../controllers/cart.controller.js";
 
 const router = express.Router();
@@ -23,5 +24,7 @@ router.post("/items", authMiddleware, validate(addItemSchema), asyncHandler(addI
 router.patch("/items", authMiddleware, validate(updateCartItemSchema, "body"), asyncHandler(updateCartItemQuantity));
 
 router.delete("/items/:productId", authMiddleware, validate(removeCartItemParamSchema, "params"), asyncHandler(removeCartItem));
+
+router.delete("/clear", authMiddleware, asyncHandler(clearCart));
 
 export default router;

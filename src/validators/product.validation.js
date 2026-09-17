@@ -83,9 +83,12 @@ export const getProductsQuerySchema = Joi.object({
 
 // ----------------------------------------------- addReviewSchema -----------------------------------------------
 
-export const addReviewSchema = Joi.object({
-  rating: Joi.number().integer().min(1).max(5).required(),
-  comment: Joi.string().trim().max(1000).allow(""),
+export const addReviewSchema = Joi.object(
+{
+    rating:
+        Joi.number().integer().min(1).max(5).required(),
+    comment:
+        Joi.string().trim().max(1000).allow(""),
 });
 
 
