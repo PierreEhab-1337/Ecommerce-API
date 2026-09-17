@@ -5,12 +5,16 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 import { 
   createOrder,
-  getMyOrders 
+  getMyOrders,
+  GetMyOrderById,
+  CancelMyOrder,
 } from "../controllers/order.controller.js";
 
 import { 
   getMyOrdersSchema,
 } from "../validators/order.validation.js";
+
+import { idParamSchema } from "../validators/user.validation.js";
 
 const router = express.Router();
 
@@ -25,6 +29,20 @@ router.get(
   authMiddleware,
   validate(getMyOrdersSchema, "query"),
   asyncHandler(getMyOrders),
+);
+
+router.get(
+  '/my/:id', 
+  authMiddleware, 
+  validate(idParamSchema, 'params'), 
+  asyncHandler(GetMyOrderById)
+);
+
+router.patch(
+  '/my/:id/cancel', 
+  authMiddleware, 
+  validate(idParamSchema, 'params'), 
+  asyncHandler(CancelMyOrder)
 );
 
 export default router;
