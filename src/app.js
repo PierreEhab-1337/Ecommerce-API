@@ -7,6 +7,7 @@ import authRouter from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
 import productRouter from "./routes/product.routes.js";
 import cartRouter from "./routes/cart.routes.js";
+import wishlistRouter from "./routes/wishlist.routes.js";
 import orderRouter from "./routes/order.routes.js";
 import stripeRouter from "./routes/stripe.webhook.routes.js";
 
@@ -27,6 +28,7 @@ app.use('/auth', authRouter);
 app.use('/users', userRouter);
 app.use('/products', productRouter);
 app.use('/carts', cartRouter);
+app.use('/wishlists',wishlistRouter);
 app.use('/orders', orderRouter);
 
 app.get('/', (req, res) => {res.send("Ecommerce API Endpoint")});
