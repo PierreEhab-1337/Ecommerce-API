@@ -29,16 +29,18 @@ export const getDashboardStats = async (req, res) => {
     recentOrders,
     totalCustomers,
   ] = await Promise.all([
-    
+  
+
     Order.aggregate([
-      { $match: { status: { $nin: ["pending", "cancelled"] } } },
+      { $match: { paymentStatus: "paid" } },
       { $group: { _id: null, total: { $sum: "$totalPrice" } } },
     ]),
+
 
     Order.aggregate([
       {
         $match: {
-          status: { $nin: ["pending", "cancelled"] },
+          paymentStatus: "paid",
           createdAt: { $gte: startOfThisMonth },
         },
       },
@@ -48,12 +50,13 @@ export const getDashboardStats = async (req, res) => {
     Order.aggregate([
       {
         $match: {
-          status: { $nin: ["pending", "cancelled"] },
+          paymentStatus: "paid",
           createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth },
         },
       },
       { $group: { _id: null, total: { $sum: "$totalPrice" } } },
     ]),
+
 
     Order.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
 
@@ -75,25 +78,19 @@ export const getDashboardStats = async (req, res) => {
     ]),
 
     Order.aggregate([
-     {
-        $match: {
-         paymentStatus: "paid",
-         createdAt: { $gte: sevenDaysAgo },
-        },
-     },
-     {
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      {
         $group: {
-         _id: {
-             $dateToString: {
-                 format: "%Y-%m-%d",
-                 date: "$createdAt",
-                },
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          revenue: {
+            $sum: {
+              $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$totalPrice", 0],
             },
-         revenue: { $sum: "$totalPrice" },
-         orderCount: { $sum: 1 },
+          },
+          orderCount: { $sum: 1 },
         },
-     },
-     { $sort: { _id: 1 } },
+      },
+      { $sort: { _id: 1 } },
     ]),
 
     Order.find()
@@ -102,8 +99,8 @@ export const getDashboardStats = async (req, res) => {
       .populate("user", "username email"),
 
     User.countDocuments({ role: "customer" }),
-  ]);
-  
+    ]);
+
   const orderCounts = ORDER_STATUSES.reduce((acc, status) => {
     acc[status] = 0;
     return acc;
