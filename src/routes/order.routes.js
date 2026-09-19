@@ -17,9 +17,8 @@ import {
 import {
   getMyOrdersSchema,
   orderIdSchema,
+  updateOrderStatusSchema
 } from "../validators/order.validation.js";
-
-import { idParamSchema } from "../validators/user.validation.js";
 
 const router = express.Router();
 
@@ -39,22 +38,25 @@ router.get(
 router.get(
   '/my/:id',
   authMiddleware,
-  validate(idParamSchema, 'params'),
+  validate(orderIdSchema, 'params'),
   asyncHandler(GetMyOrderById)
 );
 
 router.patch(
   '/my/:id/cancel',
   authMiddleware,
-  validate(idParamSchema, 'params'),
+  validate(orderIdSchema, 'params'),
   asyncHandler(CancelMyOrder)
 );
 
 
-router.get("/admin", authMiddleware, checkRole("admin"),
-  validate(getMyOrdersSchema, "query"), asyncHandler(getAllOrdersAdmin))
-
-
+router.get(
+  "/admin", 
+  authMiddleware, 
+  checkRole("admin"),
+  validate(getMyOrdersSchema, "query"), 
+  asyncHandler(getAllOrdersAdmin)
+);
 
 router.get(
   "/admin/:id",
@@ -62,14 +64,15 @@ router.get(
   checkRole("admin"),
   validate(orderIdSchema, 'params'),
   asyncHandler(getAdminOrderById)
+);
 
-)
-router.patch("/admin/:id/status", authMiddleware, checkRole("admin"),
-  validate(idParamSchema, "params"), asyncHandler(updateOrderStatusAdmin))
-
-
-
+router.patch(
+  "/admin/:id/status", 
+  authMiddleware, 
+  checkRole("admin"),
+  validate(orderIdSchema, "params"), 
+  validate(updateOrderStatusSchema),
+  asyncHandler(updateOrderStatusAdmin)
+);
 
 export default router;
-
-

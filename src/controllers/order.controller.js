@@ -245,9 +245,9 @@ export const getMyOrders = async (req, res) => {
     user: req.user.id,
   };
 
-  if (req.query.status) {
-    filter.status = req.query.status;
-  }
+  if (req.query.status) filter.status = req.query.status;
+  if (req.query.paymentMethod) filter.paymentMethod = req.query.paymentMethod;
+  if (req.query.paymentStatus) filter.paymentStatus = req.query.paymentStatus;
 
   const orders = await Order.find(filter)
     .sort({ createdAt: -1 })
@@ -356,65 +356,97 @@ export const getAdminOrderById = async (req, res, next) => {
 };
 
   // ----------------------------------- Admin: Get All Orders (Filterable) -----------------------------------
-  export const getAllOrdersAdmin = async (req, res) => {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
 
-    const filter = {};
+export const getAllOrdersAdmin = async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
 
-    if (req.query.status) filter.status = req.query.status;
-    if (req.query.paymentMethod) filter.paymentMethod = req.query.paymentMethod;
+  const filter = {};
 
-    const orders = await Order.find(filter)
-      .populate("user", "name email")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+  if (req.query.status) filter.status = req.query.status;
+  if (req.query.paymentMethod) filter.paymentMethod = req.query.paymentMethod;
+  if (req.query.paymentStatus) filter.paymentStatus = req.query.paymentStatus;
 
-    const totalOrders = await Order.countDocuments(filter);
+  const orders = await Order.find(filter)
+    .populate("user", "name email")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
 
-    res.status(200).json({
-      success: true,
-      message: "All orders fetched successfully",
-      data: {
-        orders,
-        pagination: {
-          page,
-          limit,
-          totalOrders,
-          totalPages: Math.ceil(totalOrders / limit),
-        },
+  const totalOrders = await Order.countDocuments(filter);
+
+  res.status(200).json({
+    success: true,
+    message: "All orders fetched successfully",
+    data: {
+      orders,
+      pagination: {
+        page,
+        limit,
+        totalOrders,
+        totalPages: Math.ceil(totalOrders / limit),
       },
-    })
-  }
+    },
+  })
+}
 
 // ----------------------------------- Admin: Update Order Status -----------------------------------
-export const updateOrderStatusAdmin = async (req, res, next) => {
-  const { id } = req.params
-  const { status } = req.body
 
-  const validStatuses = ["pending", "confirmed", "shipped", "delivered", "cancelled"]
+export const updateOrderStatusAdmin = async (req, res, next) => {
+  const { id } = req.params;
+  const { status, adminNote } = req.body;
+
+  const validStatuses = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "returned"]
   if (!validStatuses.includes(status)) {
-    return next(createError("Invalid status value", 400))
+    return next(createError("Invalid status value", 400));
   }
 
-  const order = await Order.findById(id).populate("user", "email name")
+  const order = await Order.findById(id).populate("user", "email name");
 
   if (!order) {
-    return next(createError("Order not found", 404))
+    return next(createError("Order not found", 404));
   }
 
-  //  console.log("Order User Object:", order.user)
-  // console.log("User Email:", order.user?.email)
-   
+  const newStatusIndex = validStatuses.indexOf(status);
+  const oldStatusIndex = validStatuses.indexOf(order.status);
 
+  if(newStatusIndex <= oldStatusIndex)
+    return next(createError(`Can't update to an older state => ${order.status} to ${status}.`, 400));
 
+  order.status = status;
 
-  order.status = status
-  await order.save()
+  if(adminNote !== undefined)
+    order.adminNote = adminNote;
 
-  // إرسال الإيميل مع حمايته بـ try/catch داخلية لضمان عدم انهيار الـ API في حال فشل خادم البريد
+  if(status === "delivered"){
+    order.deliveredAt = Date.now();
+
+    if(order.paymentStatus === "pending" && order.paymentMethod === "cash")
+      order.paymentStatus = "paid";
+  }
+
+  if (status === "cancelled" && order.status !== 'pending' && order.status !== 'confirmed') {
+    return next(createError(`Cannot cancel order with status '${order.status}'. Only pending or confirmed orders can be cancelled.`, 400));
+  }
+
+  if(status === "cancelled")
+    order.cancelledAt = Date.now();
+
+  if(status === "cancelled" || status === "returned"){
+    if(order.paymentStatus === "paid")
+      order.paymentStatus = "refunded";
+
+    for(const orderItem of order.items) {
+      await Product.findByIdAndUpdate(
+        orderItem.product,
+        { $inc: { stock: orderItem.quantity } },
+      );
+    }
+  }
+
+  await order.save();
+
   if (order.user && order.user.email) {
     try {
       await sendEmail({
@@ -428,7 +460,7 @@ export const updateOrderStatusAdmin = async (req, res, next) => {
       console.error("Failed to send order status email:", emailError.message)
     }
   } else {
-    console.warn("⚠️ Cannot send email: Order user or email is missing.")
+    console.warn("Cannot send email: Order user or email is missing.")
   }
 
   res.status(200).json({

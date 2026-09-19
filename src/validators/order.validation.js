@@ -14,6 +14,20 @@ export const getMyOrdersSchema = Joi.object({
       'returned'
     )
     .optional(),
+  paymentMethod:  Joi.string()
+    .valid(
+      "cash", 
+      "stripe", 
+      "paypal", 
+      "paymob"
+    ).optional(),
+  paymentStatus:  Joi.string()
+    .valid(
+      "pending", 
+      "paid", 
+      "failed", 
+      "refunded"
+    ).optional(),
 });
 
 export const orderIdSchema = Joi.object({
@@ -21,4 +35,18 @@ export const orderIdSchema = Joi.object({
     .length(24)
     .hex()
     .required(),
+});
+
+export const updateOrderStatusSchema = Joi.object({
+  status: Joi.string()
+    .valid(
+      'pending',
+      'confirmed',
+      'processing',
+      'shipped',
+      'delivered',
+      'cancelled',
+      'returned'
+    ).required(),
+  adminNote: Joi.string().max(1000).optional(),
 });
