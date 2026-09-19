@@ -225,5 +225,17 @@ export const orderEmailTemplate = (order) => `
 </html>
 `;
 
+export const orderStatusEmailTemplate = (order) => {
+  return `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <h2>KODA STORE - Order Status Update</h2>
+      <p>Dear ${order.user?.name || "Customer"},</p>
+      <p>Your order <strong>#${order._id}</strong> status has been updated to:</p>
+      <h3 style="color: #2b6cb0; text-transform: uppercase;">${order.status}</h3>
+      <p>Thank you for shopping with us!</p>
+    </div>
+  `
+}
+
 export default sendEmail;
            

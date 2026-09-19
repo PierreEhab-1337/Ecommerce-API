@@ -84,9 +84,11 @@ export const verifyOTP = async (req, res, next) => {
       return next(createError("Invalid OTP code", 400));
     }
 
-  if (new Date() > user.expiresAt) {
+  if (new Date() > otpEmail.expiresAt) {
     return next(createError("OTP code has expired. Please request a new one", 400));
   }
+
+
 
   // تفعيل الحساب
   user.isVerified = true;
