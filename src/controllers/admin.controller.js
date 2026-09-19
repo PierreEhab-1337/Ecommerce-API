@@ -31,6 +31,7 @@ export const getDashboardStats = async (req, res) => {
     recentOrders,
     totalCustomers,
   ] = await Promise.all([
+  
 
     Order.aggregate([
       { $match: { paymentStatus: "paid" } },
@@ -48,7 +49,6 @@ export const getDashboardStats = async (req, res) => {
       { $group: { _id: null, total: { $sum: "$totalPrice" } } },
     ]),
 
-
     Order.aggregate([
       {
         $match: {
@@ -59,9 +59,11 @@ export const getDashboardStats = async (req, res) => {
       { $group: { _id: null, total: { $sum: "$totalPrice" } } },
     ]),
 
+
     Order.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
 
     Order.aggregate([
+      { $match: { paymentStatus: "paid" } },
       { $unwind: "$items" },
       {
         $group: {
@@ -82,7 +84,11 @@ export const getDashboardStats = async (req, res) => {
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          revenue: { $sum: "$totalPrice" },
+          revenue: {
+            $sum: {
+              $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$totalPrice", 0],
+            },
+          },
           orderCount: { $sum: 1 },
         },
       },
@@ -95,7 +101,7 @@ export const getDashboardStats = async (req, res) => {
       .populate("user", "username email"),
 
     User.countDocuments({ role: "customer" }),
-  ]);
+    ]);
 
   const orderCounts = ORDER_STATUSES.reduce((acc, status) => {
     acc[status] = 0;
