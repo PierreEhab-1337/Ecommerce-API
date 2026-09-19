@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema(
       type: Date,
     },
 
-    avatar: { type: String, default: 'https://example.com/default-avatar.png' },
+    avatar: { type: String, default: 'https://static.vecteezy.com/system/resources/previews/036/280/651/original/default-avatar-profile-icon-social-media-user-image-gray-avatar-icon-blank-profile-silhouette-illustration-vector.jpg' },
     role: { type: String, enum: ['admin', 'customer'], default: 'customer' },
     addresses: [shippingAddress],
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],

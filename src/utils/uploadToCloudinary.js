@@ -1,9 +1,9 @@
 import cloudniary from '../config/cloudinaryConfig.js'
 
-const uploadToCloudinary  =(buffer)=>{
+const uploadToCloudinary  =(buffer, folderName)=>{
     return new Promise(( resolve  , reject)=>{
  const uploadStream = cloudniary.uploader.upload_stream( {
-        folder: "products",
+        folder: folderName,
       },
         (error, result) => {
         if (error) {

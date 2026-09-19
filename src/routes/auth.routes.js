@@ -4,14 +4,11 @@ import { loginSchema, forgetPasswordSchema, registerVerifyOTPSchema, forgetPassw
 import validate from '../middleware/validateHandler.middleware.js';
 import authMiddleware from "../middleware/auth.middleware.js";
 import asyncHandler from "../utils/asyncHandler.js"
-
-
-
-
+import upload from "../middleware/uploadHandler.js"
 
 const router = express.Router();
 
-router.post('/register-sendOTP', validate(registerSchema), asyncHandler(register))
+router.post('/register-sendOTP', upload.single("avatar"),validate(registerSchema), asyncHandler(register))
 
 router.post("/verify-otp", validate(registerVerifyOTPSchema), asyncHandler(verifyOTP))
 

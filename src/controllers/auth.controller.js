@@ -6,48 +6,46 @@ import OTP from '../models/OTP.model.js';
 import sendEmail from '../utils/sendEmail.js';
 import { otpEmailTemplate } from '../utils/sendEmail.js';
 import bcryptjs from "bcryptjs";
-
+import uploadToCloudinary from '../utils/uploadToCloudinary.js';
+import cloudinary from "../config/cloudinaryConfig.js";
 
 export const register = async (req, res,next) => {
-  const data = req.body;
-  data.email = data.email.toLowerCase().trim()
+  const { email, avatar, ...data} = req.body;
+  const trimmedEmail = email.toLowerCase().trim()
 
-  // 1. التحقق من وجود الإيميل مسبقاً
-  const duplicatedEmail = await User.findOne({ email: data.email })
+  const duplicatedEmail = await User.findOne({ email: trimmedEmail })
   if (duplicatedEmail) {
-        return next(createError("Email is already taken", 400))
-
+    return next(createError("Email is already taken", 400))
   }
-  
-  const user = new User({
-    ...data,
-    isVerified: false,
-  })
-  await user.save()
-  
-    // 2. توليد رمز OTP وتحديد وقت انتهائه (2 دقيقة)
-    const otp = Math.floor(100000 + Math.random() * 900000).toString() // 6 أرقام
-    const expiresAt = new Date(Date.now() + 2 * 60 * 1000)
 
-   await OTP.create({
-      email: user.email,
-      otp,
-      expiresAt,
-    });
-  // 4. إرسال الإيميل للمستخدم
+  let profilePicture;
+
+  if(req.file)
+    profilePicture = await uploadToCloudinary(req.file.buffer, "profile");
+  
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  const userData = { profilePicture, ...data};
+
+  await OTP.create({
+    email: trimmedEmail,
+    otp,
+    expiresAt,
+    userData,
+  });
+
   await sendEmail({
-    to: user.email,
+    to: trimmedEmail,
     subject: "Verify Your Email - OTP Code",
-    text: `Your OTP code is: ${otp}. It will expire in 1 minute.`,
-    html: otpEmailTemplate(otp, 2),
+    text: `Your OTP code is: ${otp}. It will expire in 5 minutes.`,
+    html: otpEmailTemplate(otp, 5),
   })
-
-  
 
   res.status(201).json({
     success:true,
     message: "Registration successful. Please check your email for the OTP code.",
-    email: user.email,
+    email: trimmedEmail,
   })
 }
 
@@ -59,47 +57,47 @@ export const verifyOTP = async (req, res, next) => {
   }
 
   const cleanEmail = email.toLowerCase().trim();
-  // تحويل الـ otp الممرر إلى نص وحذف أي مسافات
+
   const inputOtp = String(otp).trim(); 
-  //console.log("OTP from Request Body:", inputOtp, typeof inputOtp);
 
   const user = await User.findOne({ email: cleanEmail });
-  if (!user) {
-    return next(createError("User not found", 404));
+  if (user) {
+    return next(createError("Email is already verified", 400));
   }
 
-  if (user.isVerified) {
-      return next(createError("Account is already verified", 400));
+  const otpEmail = await OTP.findOne({ email: cleanEmail });
+
+  if (!otpEmail) { 
+    return next(createError("OTP code has expired or does not exist. Please request a new one", 400));
   }
 
-  // 2. جلب الـ OTP الخاص بالإيميل من قاعدة البيانات
-    const otpEmail = await OTP.findOne({ email: cleanEmail });
-    if (!otpEmail) {
-      return next(createError("OTP code has expired or does not exist. Please request a new one", 400));
-    }
-
-    // 3. مقارنة الـ OTP المدخل بالـ Hash باستخدام bcryptjs
-    const isMatch = await bcryptjs.compare(inputOtp, otpEmail.otp);
-    if (!isMatch) {
-      return next(createError("Invalid OTP code", 400));
-    }
+  const isMatch = await bcryptjs.compare(inputOtp, otpEmail.otp);
+  if (!isMatch) {
+    return next(createError("Invalid OTP code", 400));
+  }
 
   if (new Date() > otpEmail.expiresAt) {
     return next(createError("OTP code has expired. Please request a new one", 400));
   }
 
+  const { profilePicture, ...data} = otpEmail.userData;
 
+  const newUser = new User({
+    email: otpEmail.email,
+    isVerified: true,
+    avatar: profilePicture?.secure_url || profilePicture?.url,
+    ...data
+  });
 
-  // تفعيل الحساب
-  user.isVerified = true;
-  await user.save();
+  await newUser.save()
   await OTP.deleteOne({ _id: otpEmail._id })
 
+  const {password, ...safeUserData} = newUser.toObject();
 
   res.status(200).json({
     success: true,
     message: "Email verified successfully. You can now login.",
-    data : user
+    data : safeUserData
   });
 };
 

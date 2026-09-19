@@ -169,7 +169,7 @@ export const createProduct = async (req, res, next) => {
     }
 
     const uploadedImages = await Promise.all(
-      req.files.map((file) => uploadToCloudinary(file.buffer))
+      req.files.map((file) => uploadToCloudinary(file.buffer, "products"))
     );
 
     const product = await Product.create({
@@ -373,7 +373,7 @@ export const updateProduct = async (req, res, next) => {
 
   if (req.files && req.files.length > 0) {
     const uploadedImages = await Promise.all(
-      req.files.map((file) => uploadToCloudinary(file.buffer))
+      req.files.map((file) => uploadToCloudinary(file.buffer, "products"))
     );
 
     const newImages = uploadedImages.map((image) => ({
