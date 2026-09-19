@@ -7,7 +7,7 @@ import Cart from "../models/Cart.model.js";
 import User from "../models/User.model.js";
 
 import createError from "../utils/createError.js";
-import sendEmail, { orderEmailTemplate } from "../utils/sendEmail.js";
+import sendEmail, { orderEmailTemplate, orderStatusEmailTemplate } from "../utils/sendEmail.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -351,6 +351,89 @@ export const getAdminOrderById = async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: "Order fetched successfully",
+    data: order,
+  });
+};
+
+  // ----------------------------------- Admin: Get All Orders (Filterable) -----------------------------------
+  export const getAllOrdersAdmin = async (req, res) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.paymentMethod) filter.paymentMethod = req.query.paymentMethod;
+
+    const orders = await Order.find(filter)
+      .populate("user", "name email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalOrders = await Order.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      message: "All orders fetched successfully",
+      data: {
+        orders,
+        pagination: {
+          page,
+          limit,
+          totalOrders,
+          totalPages: Math.ceil(totalOrders / limit),
+        },
+      },
+    })
+  }
+
+// ----------------------------------- Admin: Update Order Status -----------------------------------
+export const updateOrderStatusAdmin = async (req, res, next) => {
+  const { id } = req.params
+  const { status } = req.body
+
+  const validStatuses = ["pending", "confirmed", "shipped", "delivered", "cancelled"]
+  if (!validStatuses.includes(status)) {
+    return next(createError("Invalid status value", 400))
+  }
+
+  const order = await Order.findById(id).populate("user", "email name")
+
+  if (!order) {
+    return next(createError("Order not found", 404))
+  }
+
+  //  console.log("Order User Object:", order.user)
+  // console.log("User Email:", order.user?.email)
+   
+
+
+
+  order.status = status
+  await order.save()
+
+  // إرسال الإيميل مع حمايته بـ try/catch داخلية لضمان عدم انهيار الـ API في حال فشل خادم البريد
+  if (order.user && order.user.email) {
+    try {
+      await sendEmail({
+        to: order.user.email,
+        subject: `Order Status Updated - KODA STORE`,
+        text: `Your order status has been updated to ${order.status}`,
+        html: orderStatusEmailTemplate(order),
+      });
+      console.log(`Email sent successfully to: ${order.user.email}`)
+    } catch (emailError) {
+      console.error("Failed to send order status email:", emailError.message)
+    }
+  } else {
+    console.warn("⚠️ Cannot send email: Order user or email is missing.")
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Order status updated and notification email processed",
     data: order,
   });
 };
