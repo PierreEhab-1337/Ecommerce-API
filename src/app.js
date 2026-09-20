@@ -11,9 +11,6 @@ import wishlistRouter from "./routes/wishlist.routes.js";
 import orderRouter from "./routes/order.routes.js";
 import stripeRouter from "./routes/stripe.webhook.routes.js";
 import adminRouter from "./routes/admin.routes.js";
-import mongoose from "mongoose";
-
-
 
 const app = express();
 
@@ -34,13 +31,6 @@ app.use('/carts', cartRouter);
 app.use('/wishlists',wishlistRouter);
 app.use('/orders', orderRouter);
 app.use('/admin', adminRouter);
-
-app.get("/debug-db", (req, res) => {
-  res.json({
-    hasUri: !!process.env.MONGODB_URI, // use your real variable name
-    readyState: mongoose.connection.readyState, // 0 disconnected, 1 connected, 2 connecting
-  });
-});
 
 app.get('/', (req, res) => {res.send("Ecommerce API Endpoint")});
 
