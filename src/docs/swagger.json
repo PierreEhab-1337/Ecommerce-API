@@ -1,0 +1,4305 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "KodaStore API",
+    "description": "REST API for the KodaStore e-commerce platform: OTP-based authentication, users, products and reviews, carts, orders, wishlists, admin operations and Stripe webhook handling.\n\nAuthentication uses an HTTP-only JWT cookie named `token`, set by `POST /auth/login`.\n\nSuccessful responses share the shape `{ success, message, data }`.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://ecommerce-api-kodastore.onrender.com/",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ],
+  "security": [
+    {
+      "cookieAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Registration, login, OTP verification, password reset and profile"
+    },
+    {
+      "name": "User",
+      "description": "User management and administration"
+    },
+    {
+      "name": "Product",
+      "description": "Product catalog, search, reviews and management"
+    },
+    {
+      "name": "Cart",
+      "description": "Current user's cart and coupon management"
+    },
+    {
+      "name": "Order",
+      "description": "Order creation and tracking for the current user, plus admin order management under /orders/admin"
+    },
+    {
+      "name": "Wishlist",
+      "description": "Current user's wishlist management"
+    },
+    {
+      "name": "Admin",
+      "description": "Admin dashboard, active carts and wishlist statistics"
+    },
+    {
+      "name": "StripeWebhook",
+      "description": "Stripe payment webhook handling"
+    }
+  ],
+  "paths": {
+    "/auth/register-sendOTP": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Register a new user and send OTP for email verification",
+        "operationId": "registerSendOTP",
+        "description": "Stores the pending registration together with a 6-digit OTP (valid for 5 minutes) and emails the code. The account is only created after `POST /auth/verify-otp`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OTP sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or the email is already taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/verify-otp": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify OTP for email confirmation and create the user",
+        "operationId": "verifyOTP",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email verified and user created (password omitted)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired OTP, email already verified, or validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Login user and set JWT cookie",
+        "operationId": "loginUser",
+        "description": "Sets an HTTP-only `token` cookie (SameSite=Strict, 24 h; `Secure` in production). In production, unverified users are rejected with 400.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logged in, JWT cookie set",
+            "headers": {
+              "Set-Cookie": {
+                "description": "HTTP-only JWT cookie named 'token'",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or email not verified (production only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid email or password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/forgot-password/send-otp": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Send OTP for password reset",
+        "operationId": "forgotPasswordSendOTP",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP emailed (valid for 5 minutes)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "OTP sent correctly"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/forgot-password/verify-otp": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify OTP and reset password",
+        "operationId": "forgotPasswordVerifyOTP",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Password reset successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired OTP, or validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get current authenticated user profile",
+        "operationId": "getCurrentUserProfile",
+        "description": "The user's wishlist is populated with full product documents.",
+        "responses": {
+          "200": {
+            "description": "Current user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPopulatedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Logout user and clear JWT cookie",
+        "operationId": "logoutUser",
+        "responses": {
+          "200": {
+            "description": "Logged out, token cookie cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Logged out successfully"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/users/all": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get all users (admin only)",
+        "operationId": "getAllUsers",
+        "description": "Each user's wishlist is populated with full product documents.",
+        "responses": {
+          "200": {
+            "description": "List of all users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsersListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/users/add": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Add a new user (admin only)",
+        "operationId": "addUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserCreatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or a user with this email already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get user by ID (admin only)",
+        "operationId": "getUserById",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPopulatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Update the authenticated user's own account",
+        "operationId": "updateUserById",
+        "description": "Users can only update their own account: the `id` must match the logged-in user, otherwise 403 is returned (this applies to admins too).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPopulatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The id does not belong to the authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Delete user by ID (admin only)",
+        "operationId": "deleteUser",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "User deleted successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "Get paginated active products with filters",
+        "operationId": "getActiveProducts",
+        "description": "Only products with `isActive: true` are returned. `category` is matched in lower case.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Category"
+          },
+          {
+            "$ref": "#/components/parameters/Brand"
+          },
+          {
+            "$ref": "#/components/parameters/MinPrice"
+          },
+          {
+            "$ref": "#/components/parameters/MaxPrice"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/ProductLimit"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated active products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedProductsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "Create a new product (admin only)",
+        "operationId": "createProduct",
+        "description": "At least one image file is required (multipart field `image`).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or no image was uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/products/search": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "Search products with multiple filters",
+        "operationId": "searchProducts",
+        "description": "Only active products are searched. `text` uses a MongoDB text index. Results are sorted by `-createdAt` unless `sort` is given. Note that this endpoint's pagination block is a top-level field, not inside `data`.",
+        "parameters": [
+          {
+            "name": "text",
+            "in": "query",
+            "required": false,
+            "description": "Free-text search term",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Category"
+          },
+          {
+            "name": "subcategory",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Brand"
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "description": "Comma separated tags (matches any)",
+            "schema": {
+              "type": "string"
+            },
+            "example": "wireless,bluetooth"
+          },
+          {
+            "$ref": "#/components/parameters/MinPrice"
+          },
+          {
+            "$ref": "#/components/parameters/MaxPrice"
+          },
+          {
+            "$ref": "#/components/parameters/SearchSort"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchProductsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "Get product details by ID",
+        "operationId": "getProductById",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "Delete product by ID (admin only)",
+        "operationId": "deleteProduct",
+        "description": "Also deletes the product's images from Cloudinary.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Product deleted successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/update/{id}": {
+      "put": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "Update product details and images (admin only)",
+        "operationId": "updateProduct",
+        "description": "Only the fields that are sent are changed. `imagesToDelete` removes images (by `public_id`) from the product and from Cloudinary; new files in `image` are appended. A product must always keep at least one image.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or the update would leave the product without images",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{id}/reviews": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "Get list of reviews for a product",
+        "operationId": "getProductReviews",
+        "description": "Each review's `user` is populated with `_id` and `username`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of product reviews",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "Add a review to a product",
+        "operationId": "addProductReview",
+        "description": "Each user can review a product only once.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Review added; returns the updated product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User has already reviewed this product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{id}/reviews/{rid}": {
+      "delete": {
+        "tags": [
+          "Product"
+        ],
+        "summary": "Delete a product review by review ID",
+        "operationId": "deleteProductReview",
+        "description": "Allowed for the review's author or an admin.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductId"
+          },
+          {
+            "$ref": "#/components/parameters/ReviewId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Review deleted; returns the recalculated rating summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDeletedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Not the review's author and not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product or review not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carts": {
+      "get": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Get current user's cart",
+        "operationId": "getUserCart",
+        "description": "An empty cart is created on first access.",
+        "responses": {
+          "200": {
+            "description": "User's cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/carts/items": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Add an item to cart",
+        "operationId": "addItemToCart",
+        "description": "Quantities accumulate: adding an existing product increases its quantity, up to available stock.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCartItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item added; returns the updated cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or not enough stock available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Update quantity of an item in cart",
+        "operationId": "updateCartItem",
+        "description": "Sets the quantity (does not add to it). Must not exceed available stock.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Quantity updated; returns the updated cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or insufficient stock",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Cart, cart item, or product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carts/items/{productId}": {
+      "delete": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Remove an item from cart",
+        "operationId": "removeCartItem",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductIdParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item removed; returns the updated cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Cart or cart item not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carts/clear": {
+      "delete": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Clear all items from cart",
+        "operationId": "clearCart",
+        "description": "Also removes any applied coupon. Returns the raw cart document, not the formatted cart view.",
+        "responses": {
+          "200": {
+            "description": "Cart cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartDocumentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Cart not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carts/coupon": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Apply a coupon to cart",
+        "operationId": "applyCoupon",
+        "description": "Coupon codes are case-sensitive and defined server-side: `SAVE10`, `SAVE20`, `SAVE50`, `SAVE80` (percentage discounts) and `OFF50` (fixed 50 off).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyCouponRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Coupon applied; returns the updated cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Code is missing, invalid or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Cart not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Remove coupon from cart",
+        "operationId": "removeCoupon",
+        "responses": {
+          "200": {
+            "description": "Coupon removed; returns the updated cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No coupon is applied to the cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Cart not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders": {
+      "post": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "Create a new order from the current user's cart",
+        "operationId": "createOrder",
+        "description": "Builds the order from the user's cart inside a single transaction: stock is checked and decremented, the cart and its coupon are cleared, and the cart discount is copied onto the order. The shipping address is added to the user's saved addresses if it is new. A confirmation email is sent.\n\n- `cash`: order is created as `confirmed` with `paymentStatus: pending`.\n- `stripe`: a PaymentIntent (currency EGP) is created; the response includes its `clientSecret` so the client can complete payment. The Stripe webhook later marks the order paid.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created (cash) or created pending payment (stripe)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported payment method, missing shipping address, empty cart, or insufficient stock",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "User not found, or a product in the cart no longer exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/my": {
+      "get": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "Get paginated orders for current user with filters",
+        "operationId": "getMyOrders",
+        "description": "Newest first. Responds with 404 when no orders match.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/OrderStatus"
+          },
+          {
+            "$ref": "#/components/parameters/PaymentMethod"
+          },
+          {
+            "$ref": "#/components/parameters/PaymentStatus"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated orders for user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedOrdersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No orders found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/my/{id}": {
+      "get": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "Get order details by ID for current user",
+        "operationId": "getMyOrderById",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OrderId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Order not found, or it belongs to another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/my/{id}/cancel": {
+      "patch": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "Cancel an order by ID for current user",
+        "operationId": "cancelMyOrder",
+        "description": "Only orders with status `pending` or `confirmed` can be cancelled. Sets `cancelledAt` and restores product stock.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OrderId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order cancelled and stock restored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID, or the order is no longer cancellable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Order not found, or it belongs to another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/admin": {
+      "get": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "Get paginated orders with filters (admin only)",
+        "operationId": "getAllOrdersAdmin",
+        "description": "Newest first. Each order's `user` is populated (see `OrderUserBasic`).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/OrderStatus"
+          },
+          {
+            "$ref": "#/components/parameters/PaymentMethod"
+          },
+          {
+            "$ref": "#/components/parameters/PaymentStatus"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated orders with user info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedOrdersAdminResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/orders/admin/{id}": {
+      "get": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "Get order details by ID with user info (admin only)",
+        "operationId": "getOrderByIdAdmin",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OrderId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderAdminResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "Order not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/admin/{id}/status": {
+      "patch": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "Update order status and optionally add admin note (admin only)",
+        "operationId": "updateOrderStatusAdmin",
+        "description": "Status can only move forward through this sequence: `pending` → `confirmed` → `processing` → `shipped` → `delivered` → `cancelled` → `returned`. Setting the same or an earlier status returns 400. Cancelling is only allowed from `pending` or `confirmed`, and `cancelled` → `returned` is rejected.\n\nSide effects:\n- `delivered`: sets `deliveredAt`; a pending cash payment becomes `paid`.\n- `cancelled`: sets `cancelledAt`.\n- `cancelled` / `returned`: product stock is restored and a `paid` payment becomes `refunded`.\n\nA status-update email is sent to the customer; email failures are logged and do not fail the request.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OrderId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrderStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order status updated and notification email processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderWithUsernameResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or the status change is not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "Order not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wishlists/my": {
+      "get": {
+        "tags": [
+          "Wishlist"
+        ],
+        "summary": "Get current user's wishlist",
+        "operationId": "getUserWishlist",
+        "description": "`products` contains product IDs (not populated).",
+        "responses": {
+          "200": {
+            "description": "User's wishlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Wishlist not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wishlists/add/{productId}": {
+      "post": {
+        "tags": [
+          "Wishlist"
+        ],
+        "summary": "Add product to user's wishlist",
+        "operationId": "addProductToWishlist",
+        "description": "The first product creates the wishlist and responds with **201** and no `data`. Adding to an existing wishlist responds with **200** and the wishlist with `products` populated.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductIdParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Added to an existing wishlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistPopulatedResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Wishlist created with the product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Product added to wishlist"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Product already in wishlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "User or product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wishlists/remove/{productId}": {
+      "delete": {
+        "tags": [
+          "Wishlist"
+        ],
+        "summary": "Remove product from user's wishlist",
+        "operationId": "removeProductFromWishlist",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProductIdParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product removed from wishlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Product not in wishlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "User or wishlist not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wishlists/clear": {
+      "delete": {
+        "tags": [
+          "Wishlist"
+        ],
+        "summary": "Clear user's wishlist",
+        "operationId": "clearWishlist",
+        "responses": {
+          "200": {
+            "description": "Wishlist cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Wishlist not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/dashboard": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get admin dashboard statistics",
+        "operationId": "getAdminDashboard",
+        "description": "Revenue figures only count orders with `paymentStatus: paid`. `last7Days` counts all orders created in the last 7 days.",
+        "responses": {
+          "200": {
+            "description": "Dashboard statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/admin/carts": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get all active carts",
+        "operationId": "getAllCarts",
+        "description": "Only carts with at least one item. Users and products are populated.",
+        "responses": {
+          "200": {
+            "description": "List of active carts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCartsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/admin/wishlists/all": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get paginated wishlists",
+        "operationId": "getAllWishlists",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated wishlists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedWishlistsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "No wishlists found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/wishlists/stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get top 10 most wishlisted products",
+        "operationId": "getWishlistStats",
+        "responses": {
+          "200": {
+            "description": "Top wishlisted products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistStatsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/stripe/webhook": {
+      "post": {
+        "tags": [
+          "StripeWebhook"
+        ],
+        "summary": "Handle Stripe webhook events",
+        "operationId": "handleStripeWebhook",
+        "description": "Called by Stripe, not by clients. The **raw** request body is verified against the `Stripe-Signature` header. Handled events:\n- `payment_intent.succeeded`: order becomes `paid` / `confirmed`, `paidAt` is set.\n- `payment_intent.payment_failed`: `paymentStatus` becomes `failed`.\n- `payment_intent.canceled`: `paymentStatus` becomes `failed`, order `cancelled`, stock restored.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StripeSignature"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Raw Stripe event payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook received",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAckResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Signature verification failed",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Webhook Error: No signatures found matching the expected signature for payload"
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "description": "Error body produced by the API's error handler",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "example": "Resource not found"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "email",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8
+          },
+          "phone": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "format": "binary",
+            "description": "Optional profile picture"
+          }
+        }
+      },
+      "VerifyOtpRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "otp"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "otp": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "example": "123456"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8
+          }
+        }
+      },
+      "ForgotPasswordRequest": {
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "otp",
+          "newPassword"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "otp": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "example": "123456"
+          },
+          "newPassword": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8
+          }
+        }
+      },
+      "Address": {
+        "type": "object",
+        "required": [
+          "fullName",
+          "phone",
+          "country",
+          "city",
+          "address",
+          "postalCode"
+        ],
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "phone": {
+            "type": "string",
+            "example": "01012345678"
+          },
+          "country": {
+            "type": "string",
+            "example": "Egypt"
+          },
+          "city": {
+            "type": "string",
+            "example": "Sohag"
+          },
+          "address": {
+            "type": "string",
+            "description": "Street / building address line"
+          },
+          "postalCode": {
+            "type": "string",
+            "example": "82511"
+          }
+        }
+      },
+      "UserBase": {
+        "type": "object",
+        "description": "User document without password",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "username": {
+            "type": "string",
+            "example": "johndoe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "johndoe@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "01012345678"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "admin"
+            ],
+            "example": "customer"
+          },
+          "avatar": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "isVerified": {
+            "type": "boolean",
+            "example": true
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Address"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "User": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "wishlist": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "MongoDB ObjectId",
+                  "example": "60f7c0b9a2e4f123456789ab"
+                },
+                "description": "Product IDs"
+              }
+            }
+          }
+        ]
+      },
+      "UserPopulated": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "wishlist": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "UserCreatedData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "admin"
+            ]
+          }
+        }
+      },
+      "UserCreate": {
+        "type": "object",
+        "required": [
+          "username",
+          "email",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 30
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 6
+          },
+          "phone": {
+            "type": "string",
+            "pattern": "^01[0125][0-9]{8}$",
+            "description": "Egyptian mobile number",
+            "example": "01012345678"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "admin"
+            ],
+            "default": "customer"
+          }
+        }
+      },
+      "UserUpdate": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 30
+          },
+          "phone": {
+            "type": "string",
+            "pattern": "^01[0125][0-9]{8}$",
+            "description": "Egyptian mobile number",
+            "example": "01012345678"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "Avatar value (trimmed string)"
+          }
+        }
+      },
+      "Image": {
+        "type": "object",
+        "properties": {
+          "public_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "ProductReview": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "user": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProductReviewPopulated": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "_id": {
+                "type": "string",
+                "description": "MongoDB ObjectId",
+                "example": "60f7c0b9a2e4f123456789ab"
+              },
+              "username": {
+                "type": "string"
+              }
+            }
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortDescription": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "float"
+          },
+          "discountPrice": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "stock": {
+            "type": "integer"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "subcategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "brand": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "featured": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "reviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductReview"
+            }
+          },
+          "averageRating": {
+            "type": "number",
+            "format": "float"
+          },
+          "numReviews": {
+            "type": "integer"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProductCreateRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "price",
+          "shortDescription",
+          "description",
+          "stock",
+          "category",
+          "image"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0
+          },
+          "shortDescription": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "description": {
+            "type": "string"
+          },
+          "discountPrice": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0
+          },
+          "stock": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sku": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "category": {
+            "type": "string"
+          },
+          "subcategory": {
+            "type": "string"
+          },
+          "brand": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "featured": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "image": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "description": "Product image files (multipart field `image`)"
+          }
+        }
+      },
+      "ProductUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0
+          },
+          "shortDescription": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "description": {
+            "type": "string"
+          },
+          "discountPrice": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0
+          },
+          "stock": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sku": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "category": {
+            "type": "string"
+          },
+          "subcategory": {
+            "type": "string"
+          },
+          "brand": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "featured": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "imagesToDelete": {
+            "description": "public_id (or list of public_ids) of images to remove",
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "image": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "description": "New image files to add (multipart field `image`)"
+          }
+        }
+      },
+      "AddReviewRequest": {
+        "type": "object",
+        "required": [
+          "rating"
+        ],
+        "properties": {
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "example": 5
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "May be an empty string"
+          }
+        }
+      },
+      "ReviewSummary": {
+        "type": "object",
+        "properties": {
+          "averageRating": {
+            "type": "number",
+            "format": "float"
+          },
+          "numReviews": {
+            "type": "integer"
+          }
+        }
+      },
+      "Coupon": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "SAVE10",
+              "SAVE20",
+              "SAVE50",
+              "SAVE80",
+              "OFF50"
+            ]
+          },
+          "discountType": {
+            "type": "string",
+            "enum": [
+              "percentage",
+              "fixed"
+            ]
+          },
+          "discountValue": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "CartItemView": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "description": "discountPrice when set, otherwise price"
+          },
+          "image": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "First product image"
+          },
+          "quantity": {
+            "type": "integer"
+          }
+        }
+      },
+      "CartView": {
+        "type": "object",
+        "description": "Formatted cart returned by most cart endpoints",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItemView"
+            }
+          },
+          "subtotal": {
+            "type": "number",
+            "format": "float"
+          },
+          "discountAmount": {
+            "type": "number",
+            "format": "float"
+          },
+          "total": {
+            "type": "number",
+            "format": "float"
+          },
+          "itemCount": {
+            "type": "integer"
+          },
+          "coupon": {
+            "type": "string",
+            "nullable": true,
+            "description": "Applied coupon code, or null"
+          }
+        }
+      },
+      "CartDocument": {
+        "type": "object",
+        "description": "Raw cart document (unpopulated)",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "user": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "product": {
+                  "type": "string",
+                  "description": "MongoDB ObjectId",
+                  "example": "60f7c0b9a2e4f123456789ab"
+                },
+                "quantity": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "coupon": {
+            "$ref": "#/components/schemas/Coupon"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProductSummary": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "float"
+          },
+          "discountPrice": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "stock": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminCart": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "_id": {
+                "type": "string",
+                "description": "MongoDB ObjectId",
+                "example": "60f7c0b9a2e4f123456789ab"
+              },
+              "username": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "phone": {
+                "type": "string"
+              }
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "product": {
+                  "$ref": "#/components/schemas/ProductSummary"
+                },
+                "quantity": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "coupon": {
+            "$ref": "#/components/schemas/Coupon"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AddCartItemRequest": {
+        "type": "object",
+        "required": [
+          "productId"
+        ],
+        "properties": {
+          "productId": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{24}$",
+            "description": "24-character hex ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          }
+        }
+      },
+      "ApplyCouponRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "description": "No Joi validator on this route; the code is looked up in a server-side list.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "SAVE10",
+              "SAVE20",
+              "SAVE50",
+              "SAVE80",
+              "OFF50"
+            ],
+            "example": "SAVE10"
+          }
+        }
+      },
+      "UpdateCartItemRequest": {
+        "type": "object",
+        "required": [
+          "productId",
+          "quantity"
+        ],
+        "properties": {
+          "productId": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "Wishlist": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "user": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "MongoDB ObjectId",
+              "example": "60f7c0b9a2e4f123456789ab"
+            },
+            "description": "Product IDs"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WishlistPopulated": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "user": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WishlistProductStat": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          },
+          "wishlistCount": {
+            "type": "integer",
+            "description": "Number of wishlists containing the product"
+          }
+        }
+      },
+      "OrderItem": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "string",
+            "description": "Product ID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "First product image URL"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "description": "Unit price at order time (discountPrice if set, otherwise price)"
+          },
+          "quantity": {
+            "type": "integer"
+          }
+        }
+      },
+      "OrderBase": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItem"
+            }
+          },
+          "shippingAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "stripe",
+              "paypal",
+              "paymob"
+            ]
+          },
+          "paymentStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "paid",
+              "failed",
+              "refunded"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "confirmed",
+              "processing",
+              "shipped",
+              "delivered",
+              "cancelled",
+              "returned"
+            ]
+          },
+          "discount": {
+            "type": "number",
+            "format": "float",
+            "description": "Cart discount copied onto the order"
+          },
+          "totalPrice": {
+            "type": "number",
+            "format": "float"
+          },
+          "customerNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stripe PaymentIntent ID"
+          },
+          "adminNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Order": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OrderBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "user": {
+                "type": "string",
+                "description": "ID of the user who placed the order"
+              }
+            }
+          }
+        ]
+      },
+      "OrderUserBasic": {
+        "type": "object",
+        "description": "Populated with `name email`. If the User model uses `username` (not `name`), only `_id` and `email` are returned.",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      },
+      "OrderUser": {
+        "type": "object",
+        "description": "Populated with `email username`.",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "MongoDB ObjectId",
+            "example": "60f7c0b9a2e4f123456789ab"
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      },
+      "OrderAdmin": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OrderBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "user": {
+                "$ref": "#/components/schemas/OrderUserBasic"
+              }
+            }
+          }
+        ]
+      },
+      "OrderWithUsername": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OrderBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "user": {
+                "$ref": "#/components/schemas/OrderUser"
+              }
+            }
+          }
+        ]
+      },
+      "StripeOrderData": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "$ref": "#/components/schemas/Order"
+          },
+          "clientSecret": {
+            "type": "string",
+            "description": "Stripe PaymentIntent client secret"
+          }
+        }
+      },
+      "CreateOrderRequest": {
+        "type": "object",
+        "required": [
+          "shippingAddress"
+        ],
+        "properties": {
+          "shippingAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "stripe"
+            ],
+            "default": "cash"
+          },
+          "customerNote": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateOrderStatusRequest": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "confirmed",
+              "processing",
+              "shipped",
+              "delivered",
+              "cancelled",
+              "returned"
+            ]
+          },
+          "adminNote": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        }
+      },
+      "AdminDashboard": {
+        "type": "object",
+        "properties": {
+          "revenue": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number",
+                "format": "float"
+              },
+              "monthly": {
+                "type": "number",
+                "format": "float"
+              },
+              "lastMonth": {
+                "type": "number",
+                "format": "float"
+              },
+              "growthPercentage": {
+                "type": "number",
+                "format": "float",
+                "description": "Month-over-month growth, 2 decimals"
+              }
+            }
+          },
+          "orderCounts": {
+            "type": "object",
+            "description": "Number of orders per status (all statuses always present)",
+            "properties": {
+              "pending": {
+                "type": "integer"
+              },
+              "confirmed": {
+                "type": "integer"
+              },
+              "processing": {
+                "type": "integer"
+              },
+              "shipped": {
+                "type": "integer"
+              },
+              "delivered": {
+                "type": "integer"
+              },
+              "cancelled": {
+                "type": "integer"
+              },
+              "returned": {
+                "type": "integer"
+              }
+            }
+          },
+          "topProducts": {
+            "type": "array",
+            "description": "Top 5 by units sold (paid orders only)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "_id": {
+                  "type": "string",
+                  "description": "MongoDB ObjectId",
+                  "example": "60f7c0b9a2e4f123456789ab"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "totalSold": {
+                  "type": "integer"
+                },
+                "revenue": {
+                  "type": "number",
+                  "format": "float"
+                }
+              }
+            }
+          },
+          "last7Days": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "_id": {
+                  "type": "string",
+                  "format": "date",
+                  "example": "2026-09-20"
+                },
+                "revenue": {
+                  "type": "number",
+                  "format": "float"
+                },
+                "orderCount": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "recentOrders": {
+            "type": "array",
+            "description": "5 most recent orders",
+            "items": {
+              "$ref": "#/components/schemas/OrderWithUsername"
+            }
+          },
+          "totalCustomers": {
+            "type": "integer"
+          }
+        }
+      },
+      "RegisterResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string",
+                "format": "email"
+              }
+            }
+          }
+        ]
+      },
+      "UserResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          }
+        ]
+      },
+      "LoginResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "user": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "UserPopulatedResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/UserPopulated"
+              }
+            }
+          }
+        ]
+      },
+      "UsersListResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UserPopulated"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "UserCreatedResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/UserCreatedData"
+              }
+            }
+          }
+        ]
+      },
+      "ProductResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Product"
+              }
+            }
+          }
+        ]
+      },
+      "PaginatedProductsResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "products": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Product"
+                    }
+                  },
+                  "pagination": {
+                    "type": "object",
+                    "properties": {
+                      "page": {
+                        "type": "integer"
+                      },
+                      "limit": {
+                        "type": "integer"
+                      },
+                      "total": {
+                        "type": "integer"
+                      },
+                      "pages": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "SearchProductsResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "result": {
+                "type": "integer",
+                "description": "Number of products in this page"
+              },
+              "pagination": {
+                "type": "object",
+                "properties": {
+                  "total": {
+                    "type": "integer"
+                  },
+                  "page": {
+                    "type": "integer"
+                  },
+                  "allPages": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "products": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Product"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ReviewsResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProductReviewPopulated"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ReviewDeletedResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ReviewSummary"
+              }
+            }
+          }
+        ]
+      },
+      "CartResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CartView"
+              }
+            }
+          }
+        ]
+      },
+      "CartDocumentResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CartDocument"
+              }
+            }
+          }
+        ]
+      },
+      "AdminCartsResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdminCart"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "WishlistResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Wishlist"
+              }
+            }
+          }
+        ]
+      },
+      "WishlistPopulatedResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/WishlistPopulated"
+              }
+            }
+          }
+        ]
+      },
+      "PaginatedWishlistsResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "wishlists": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Wishlist"
+                    }
+                  },
+                  "pagination": {
+                    "type": "object",
+                    "properties": {
+                      "page": {
+                        "type": "integer"
+                      },
+                      "limit": {
+                        "type": "integer"
+                      },
+                      "total": {
+                        "type": "integer"
+                      },
+                      "totalPages": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "WishlistStatsResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WishlistProductStat"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "DashboardResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AdminDashboard"
+              }
+            }
+          }
+        ]
+      },
+      "OrderResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Order"
+              }
+            }
+          }
+        ]
+      },
+      "OrderAdminResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/OrderAdmin"
+              }
+            }
+          }
+        ]
+      },
+      "OrderWithUsernameResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/OrderWithUsername"
+              }
+            }
+          }
+        ]
+      },
+      "PaginatedOrdersResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "orders": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Order"
+                    }
+                  },
+                  "pagination": {
+                    "type": "object",
+                    "properties": {
+                      "page": {
+                        "type": "integer"
+                      },
+                      "limit": {
+                        "type": "integer"
+                      },
+                      "totalOrders": {
+                        "type": "integer"
+                      },
+                      "totalPages": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "PaginatedOrdersAdminResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "orders": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/OrderAdmin"
+                    }
+                  },
+                  "pagination": {
+                    "type": "object",
+                    "properties": {
+                      "page": {
+                        "type": "integer"
+                      },
+                      "limit": {
+                        "type": "integer"
+                      },
+                      "totalOrders": {
+                        "type": "integer"
+                      },
+                      "totalPages": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "CreateOrderResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Order"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StripeOrderData"
+                  }
+                ],
+                "description": "`Order` for cash payments; `{ order, clientSecret }` for stripe payments"
+              }
+            }
+          }
+        ]
+      },
+      "WebhookAckResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "received": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "parameters": {
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "description": "Page number"
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1
+        },
+        "description": "Items per page"
+      },
+      "ProductLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 100
+        },
+        "description": "Items per page (max 100)"
+      },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Mongoose sort string, e.g. `price` or `-createdAt`"
+      },
+      "SearchSort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Comma-separated fields, prefix with `-` for descending, e.g. `-price,name` (default `-createdAt`)"
+      },
+      "Category": {
+        "name": "category",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Matched in lower case"
+      },
+      "Brand": {
+        "name": "brand",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "MinPrice": {
+        "name": "minPrice",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "number",
+          "format": "float",
+          "minimum": 0
+        }
+      },
+      "MaxPrice": {
+        "name": "maxPrice",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "number",
+          "format": "float",
+          "minimum": 0
+        }
+      },
+      "OrderStatus": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "confirmed",
+            "processing",
+            "shipped",
+            "delivered",
+            "cancelled",
+            "returned"
+          ]
+        },
+        "description": "Filter by order status"
+      },
+      "PaymentMethod": {
+        "name": "paymentMethod",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "cash",
+            "stripe",
+            "paypal",
+            "paymob"
+          ]
+        }
+      },
+      "PaymentStatus": {
+        "name": "paymentStatus",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "paid",
+            "failed",
+            "refunded"
+          ]
+        }
+      },
+      "UserId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "User ID",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{24}$",
+          "description": "24-character hex ObjectId",
+          "example": "60f7c0b9a2e4f123456789ab"
+        }
+      },
+      "OrderId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Order ID",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{24}$",
+          "description": "24-character hex ObjectId",
+          "example": "60f7c0b9a2e4f123456789ab"
+        }
+      },
+      "ProductId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Product ID",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{24}$",
+          "description": "24-character hex ObjectId",
+          "example": "60f7c0b9a2e4f123456789ab"
+        }
+      },
+      "ReviewId": {
+        "name": "rid",
+        "in": "path",
+        "required": true,
+        "description": "Review ID",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ProductIdParam": {
+        "name": "productId",
+        "in": "path",
+        "required": true,
+        "description": "Product ID",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "StripeSignature": {
+        "name": "Stripe-Signature",
+        "in": "header",
+        "required": true,
+        "description": "Signature Stripe adds to every webhook call",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request due to invalid input",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "success": false,
+              "message": "\"page\" must be greater than or equal to 1"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Authentication required or failed",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "success": false,
+              "message": "Unauthorized"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Access forbidden due to insufficient permissions",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "success": false,
+              "message": "Forbidden"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "token",
+        "description": "JWT stored in an HTTP-only cookie named 'token'"
+      }
+    }
+  }
+}

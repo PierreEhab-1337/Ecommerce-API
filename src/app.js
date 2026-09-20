@@ -12,6 +12,9 @@ import orderRouter from "./routes/order.routes.js";
 import stripeRouter from "./routes/stripe.webhook.routes.js";
 import adminRouter from "./routes/admin.routes.js";
 
+import swaggerUi from "swagger-ui-express";
+import swaggerDocument from "./docs/swagger.json" with { type: "json" };
+
 const app = express();
 
 app.use(cors());
@@ -21,6 +24,7 @@ app.use('/stripe/webhook', stripeRouter)
 //Parses incoming JSON data sent from the frontend
 app.use(express.json());
 
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use(cookieParser());
 
 
