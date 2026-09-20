@@ -106,12 +106,12 @@ export const login = async (req, res) => {
 
   const user = await User.findOne({ email }).select('+password');
   
-  if (!user.isVerified && process.env.NODE_ENV === "production") {
-    return next(createError("Please verify your email first.", 400));
-  }
-  
   if (!user) {
     throw createError('Invalid email or password', 401);
+  }
+
+  if (!user.isVerified && process.env.NODE_ENV === "production") {
+    throw createError("Please verify your email first.", 400);
   }
 
   const isMatch = await user.comparePassword(password);
@@ -128,7 +128,7 @@ export const login = async (req, res) => {
   res.cookie('token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'none',
     maxAge: 24 * 60 * 60 * 1000,
   });
 

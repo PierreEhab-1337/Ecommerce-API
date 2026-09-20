@@ -44,7 +44,7 @@ const cartResponseStructure = (cart) => {
             discountAmount: cart.discountAmount,
             total: cart.total,
             itemCount: cart.itemCount,
-            coupon: cart.coupon.code || null,
+            coupon: cart.coupon?.code || null,
             items,
         }
     )

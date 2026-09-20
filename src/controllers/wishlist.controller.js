@@ -39,6 +39,9 @@ export const addToWishlist = async (req, res) => {
             products: [productId]
         });
 
+        user.wishlist.push(productId);
+        await user.save();
+
         return res.status(201).json({
             success: true,
             message: "Product added to wishlist"

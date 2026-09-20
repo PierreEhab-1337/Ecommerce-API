@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import Order from "../models/Order.model.js";
+import Product from "../models/Product.model.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -88,6 +89,15 @@ export const stripeWebhook = async (req, res) => {
 
       order.paymentStatus = "failed";
 
+      order.status = "cancelled";
+
+      for(const orderItem of order.items) {
+        await Product.findByIdAndUpdate(
+          orderItem.product,
+          { $inc: { stock: orderItem.quantity } },
+        );
+      };
+
       await order.save();
 
       console.log(`Order ${order._id} payment failed`);
@@ -120,6 +130,13 @@ export const stripeWebhook = async (req, res) => {
 
       order.paymentStatus = "failed";
       order.status = "cancelled";
+
+      for(const orderItem of order.items) {
+        await Product.findByIdAndUpdate(
+          orderItem.product,
+          { $inc: { stock: orderItem.quantity } },
+        );
+      }
 
       await order.save();
 

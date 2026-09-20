@@ -402,19 +402,20 @@ export const updateOrderStatusAdmin = async (req, res, next) => {
     return next(createError("Invalid status value", 400));
   }
 
-  const order = await Order.findById(id).populate("user", "email name");
+  const order = await Order.findById(id).populate("user", "email username");
 
   if (!order) {
     return next(createError("Order not found", 404));
   }
+
+  if(order.status === "cancelled" &&  status === "returned")
+    return next(createError("Can't change state from cancelled to returned"));
 
   const newStatusIndex = validStatuses.indexOf(status);
   const oldStatusIndex = validStatuses.indexOf(order.status);
 
   if(newStatusIndex <= oldStatusIndex)
     return next(createError(`Can't update to an older state => ${order.status} to ${status}.`, 400));
-
-  order.status = status;
 
   if(adminNote !== undefined)
     order.adminNote = adminNote;
@@ -445,6 +446,7 @@ export const updateOrderStatusAdmin = async (req, res, next) => {
     }
   }
 
+  order.status = status;
   await order.save();
 
   if (order.user && order.user.email) {
