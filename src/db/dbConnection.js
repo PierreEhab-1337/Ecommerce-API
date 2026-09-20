@@ -21,7 +21,7 @@ mongoose.connection.on('disconnected', () => {
 //   }
 // };
 
-// export default connectDB;
+
 
 const connectDB = async () => {
   try {
@@ -39,3 +39,5 @@ const connectDB = async () => {
     throw err;
   }
 };
+
+export default connectDB;
