@@ -35,6 +35,13 @@ app.use('/wishlists',wishlistRouter);
 app.use('/orders', orderRouter);
 app.use('/admin', adminRouter);
 
+app.get("/debug-db", (req, res) => {
+  res.json({
+    hasUri: !!process.env.MONGO_URI, // use your real variable name
+    readyState: mongoose.connection.readyState, // 0 disconnected, 1 connected, 2 connecting
+  });
+});
+
 app.get('/', (req, res) => {res.send("Ecommerce API Endpoint")});
 
 
