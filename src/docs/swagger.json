@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://ecommerce-api-kodastore.onrender.com/",
+      "url": "https://ecommerce-api-kodastore.vercel.app/",
       "description": "Production server"
     },
     {
