@@ -6,7 +6,7 @@ export const getAllWishlistSchema = Joi.object({
 });
 
 export const wishlistIdSchema = Joi.object({
-  id: Joi.string()
+  productId: Joi.string()
     .length(24)
     .hex()
     .required(),
