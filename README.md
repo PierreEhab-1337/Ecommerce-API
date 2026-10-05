@@ -70,14 +70,14 @@ Six collections: `User`, `Product`, `Order`, `Cart`, `Wishlist`, `OTP`. A few re
 - A `Cart` and a `Wishlist` each belong to exactly one `User`. Cart totals (`subtotal`, `discountAmount`, `total`, `itemCount`) are Mongoose virtuals, computed on read rather than stored — and coupon codes (`SAVE10`, `SAVE20`, `SAVE50`, `SAVE80`, `OFF50`) are defined server-side, not in the database.
 - An `Order`'s `items[]` are a snapshot (name, image, price, quantity) taken at purchase time, independent of later changes to the `Product`. `status` moves forward through `pending → confirmed → processing → shipped → delivered`, with `cancelled` / `returned` as side branches.
 - A `Product`'s `averageRating` / `numReviews` are recalculated whenever a review is added or removed, and `slug` is auto-generated from `name`.
-Exact fields, types and validation rules for every model are in [`docs/swagger.json`](./docs/swagger.json).
+Exact fields, types and validation rules for every model are in [`Swagger UI`](https://ecommerce-api-kodastore.vercel.app/api-docs/).
 
 ## API Reference
 
 40+ endpoints across authentication, users, products, carts, orders, wishlists, admin, and the Stripe webhook. Full request/response schemas, auth requirements, and query parameters are documented in the OpenAPI spec:
  
 - **Spec file:** [`docs/swagger.json`](./docs/swagger.json)
-- **Interactive docs:** served at `[/api-docs](https://ecommerce-api-kodastore.vercel.app/api-docs/)` (Swagger UI) when the server is running
+- **Interactive docs:** served at [`Swagger UI`](https://ecommerce-api-kodastore.vercel.app/api-docs/) 
 Authentication across the API is a JWT stored in an HTTP-only `token` cookie, set by `POST /auth/login`.
 
 ## Business Logic Highlights
